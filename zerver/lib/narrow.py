@@ -832,6 +832,11 @@ def ok_to_include_history(
 
     assert user_profile is not None
 
+    # Custom visibility policy: non-admin users should only access stream
+    # messages through their UserMessage rows.
+    if not user_profile.is_realm_admin:
+        return False
+
     include_history = False
     if narrow is not None:
         for term in narrow:
