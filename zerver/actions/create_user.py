@@ -210,14 +210,27 @@ def add_new_user_history(
     ]
 
     # Start by finding recent messages matching those recipients.
+    message_query = Message.objects.filter(
+        # Uses index: zerver_message_realm_recipient_id
+        realm_id=realm.id,
+        recipient_id__in=recipient_ids,
+    )
+
+    # Non-admin users should only see stream messages sent by admins,
+    # matching the visibility restriction applied at message-send time.
+    if not user_profile.is_realm_admin:
+        admin_sender_ids = UserProfile.objects.filter(
+            realm=realm,
+            is_active=True,
+            role__in=(
+                UserProfile.ROLE_REALM_ADMINISTRATOR,
+                UserProfile.ROLE_REALM_OWNER,
+            ),
+        ).values_list("id", flat=True)
+        message_query = message_query.filter(sender_id__in=admin_sender_ids)
+
     recent_message_ids = set(
-        Message.objects.filter(
-            # Uses index: zerver_message_realm_recipient_id
-            realm_id=realm.id,
-            recipient_id__in=recipient_ids,
-        )
-        .order_by("-id")
-        .values_list("id", flat=True)[0:MAX_NUM_RECENT_MESSAGES]
+        message_query.order_by("-id").values_list("id", flat=True)[0:MAX_NUM_RECENT_MESSAGES]
     )
 
     tracked_onboarding_message_ids = set()
