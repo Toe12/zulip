@@ -20,11 +20,12 @@ class TestReadReceipts(ZulipTestCase):
         self.assert_json_success(result)
 
     def test_stream_message(self) -> None:
+        owner = self.example_user("desdemona")
         hamlet = self.example_user("hamlet")
         sender = self.example_user("othello")
 
         message_id = self.send_stream_message(sender, "Verona", "read receipts")
-        self.login("hamlet")
+        self.login_user(owner)
 
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_success(result)
@@ -38,44 +39,45 @@ class TestReadReceipts(ZulipTestCase):
         self.assertTrue(sender.id not in result.json()["user_ids"])
 
     def test_personal_message(self) -> None:
-        hamlet = self.example_user("hamlet")
         sender = self.example_user("othello")
+        admin = self.example_user("iago")
 
-        message_id = self.send_personal_message(sender, hamlet)
-        self.login("hamlet")
-
-        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
-        self.assert_json_success(result)
-        self.assertTrue(hamlet.id not in result.json()["user_ids"])
-
-        self.mark_message_read(hamlet, message_id)
+        message_id = self.send_personal_message(sender, admin)
+        self.login_user(admin)
 
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_success(result)
-        self.assertTrue(hamlet.id in result.json()["user_ids"])
+        self.assertTrue(admin.id not in result.json()["user_ids"])
+
+        self.mark_message_read(admin, message_id)
+
+        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
+        self.assert_json_success(result)
+        self.assertTrue(admin.id in result.json()["user_ids"])
         self.assertTrue(sender.id not in result.json()["user_ids"])
 
     def test_group_direct_message(self) -> None:
-        hamlet = self.example_user("hamlet")
+        admin = self.example_user("iago")
         sender = self.example_user("othello")
         cordelia = self.example_user("cordelia")
 
-        message_id = self.send_group_direct_message(sender, [hamlet, cordelia])
-        self.login("hamlet")
+        message_id = self.send_group_direct_message(sender, [admin, cordelia])
+        self.login_user(admin)
 
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_success(result)
-        self.assertTrue(hamlet.id not in result.json()["user_ids"])
+        self.assertTrue(admin.id not in result.json()["user_ids"])
         self.assertTrue(sender.id not in result.json()["user_ids"])
 
-        self.mark_message_read(hamlet, message_id)
+        self.mark_message_read(admin, message_id)
 
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_success(result)
-        self.assertTrue(hamlet.id in result.json()["user_ids"])
+        self.assertTrue(admin.id in result.json()["user_ids"])
         self.assertTrue(sender.id not in result.json()["user_ids"])
 
     def test_inaccessible_stream_message(self) -> None:
+        admin = self.example_user("iago")
         sender = self.example_user("othello")
 
         private_stream = "private stream"
@@ -86,9 +88,28 @@ class TestReadReceipts(ZulipTestCase):
 
         self.login("hamlet")
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
+        self.assert_json_error(result, "Must be an organization administrator")
+
+        self.login_user(admin)
+        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_error(result, "Invalid message(s)")
 
-        self.login_user(sender)
+    def test_only_administrators_can_view_read_receipts(self) -> None:
+        sender = self.example_user("othello")
+
+        message_id = self.send_stream_message(sender, "Verona", "read receipts")
+
+        self.login("hamlet")
+        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
+        self.assert_json_error(result, "Must be an organization administrator")
+
+    def test_owner_can_view_read_receipts(self) -> None:
+        owner = self.example_user("desdemona")
+        sender = self.example_user("othello")
+
+        message_id = self.send_stream_message(sender, "Verona", "read receipts")
+
+        self.login_user(owner)
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_success(result)
 
@@ -103,8 +124,8 @@ class TestReadReceipts(ZulipTestCase):
         self.mark_message_read(hamlet, message_id)
         self.mark_message_read(cordelia, message_id)
 
-        # Login as cordelia and make sure hamlet is in read receipts before deactivation.
-        self.login("cordelia")
+        # Login as iago and make sure hamlet is in read receipts before deactivation.
+        self.login("iago")
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_success(result)
         self.assertTrue(hamlet.id in result.json()["user_ids"])
@@ -134,7 +155,7 @@ class TestReadReceipts(ZulipTestCase):
         self.mark_message_read(hamlet, message_id)
         self.mark_message_read(cordelia, message_id)
 
-        self.login("aaron")
+        self.login("iago")
         do_set_realm_property(sender.realm, "enable_read_receipts", False, acting_user=None)
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_error(result, "Read receipts are disabled in this organization.")
@@ -164,7 +185,7 @@ class TestReadReceipts(ZulipTestCase):
         self.mark_message_read(hamlet, message_id)
         self.mark_message_read(bot, message_id)
 
-        self.login("aaron")
+        self.login("iago")
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         self.assert_json_success(result)
         self.assertIn(hamlet.id, result.json()["user_ids"])
@@ -191,7 +212,7 @@ class TestReadReceipts(ZulipTestCase):
 
         message_id = self.send_stream_message(cordelia, stream_name, content="foo")
 
-        self.login("hamlet")
+        self.login("iago")
 
         # Have hamlet react to the message to
         # create a historical UserMessage row.
@@ -238,48 +259,12 @@ class TestReadReceipts(ZulipTestCase):
         self.assertTrue(cordelia.id in response_dict["user_ids"])
         self.assertTrue(othello.id in response_dict["user_ids"])
 
-        # Login as Hamlet and make sure Cordelia is not in read receipts.
-        self.login("hamlet")
-        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
-        response_dict = self.assert_json_success(result)
-        self.assert_length(response_dict["user_ids"], 2)
-        self.assertTrue(hamlet.id in response_dict["user_ids"])
-        self.assertFalse(cordelia.id in response_dict["user_ids"])
-        self.assertTrue(othello.id in response_dict["user_ids"])
-
-        # Login as Othello and make sure Cordelia is not in in read receipts.
-        self.login("othello")
-        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
-        response_dict = self.assert_json_success(result)
-        self.assert_length(response_dict["user_ids"], 2)
-        self.assertTrue(hamlet.id in response_dict["user_ids"])
-        self.assertFalse(cordelia.id in response_dict["user_ids"])
-        self.assertTrue(othello.id in response_dict["user_ids"])
-
-        # Login as Cordelia and make sure Hamlet and Othello are not in read receipts.
-        self.login("cordelia")
-        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
-        response_dict = self.assert_json_success(result)
-        self.assert_length(response_dict["user_ids"], 1)
-        self.assertFalse(hamlet.id in response_dict["user_ids"])
-        self.assertTrue(cordelia.id in response_dict["user_ids"])
-        self.assertFalse(othello.id in response_dict["user_ids"])
-
         # Cordelia unmutes Othello
         mute_object = get_mute_object(cordelia, othello)
         assert mute_object is not None
         mute_object.delete()
 
-        # Now Othello should appear in her read receipts, but not Hamlet.
-        result = self.client_get(f"/json/messages/{message_id}/read_receipts")
-        response_dict = self.assert_json_success(result)
-        self.assert_length(response_dict["user_ids"], 2)
-        self.assertFalse(hamlet.id in response_dict["user_ids"])
-        self.assertTrue(cordelia.id in response_dict["user_ids"])
-        self.assertTrue(othello.id in response_dict["user_ids"])
-
-        # Login as Othello and make sure all three users are in read receipts.
-        self.login("othello")
+        # The administrator view is unaffected by mute relationships between other users.
         result = self.client_get(f"/json/messages/{message_id}/read_receipts")
         response_dict = self.assert_json_success(result)
         self.assert_length(response_dict["user_ids"], 3)

@@ -17,6 +17,9 @@ def read_receipts(
     *,
     message_id: PathOnly[NonNegativeInt],
 ) -> HttpResponse:
+    if not user_profile.is_realm_admin:
+        raise JsonableError(_("Must be an organization administrator"))
+
     message = access_message(user_profile, message_id, is_modifying_message=False)
 
     if not user_profile.realm.enable_read_receipts:

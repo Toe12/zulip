@@ -173,6 +173,7 @@ function test(label, f) {
 test("my_message_all_actions", ({override}) => {
     // Set page parameters.
     set_page_params_no_edit_restrictions({override});
+    override(current_user, "is_admin", true);
     override(realm, "realm_can_delete_any_message_group", everyone.id);
     override(realm, "realm_can_delete_own_message_group", everyone.id);
     override(realm, "realm_can_move_messages_between_topics_group", everyone.id);
@@ -223,6 +224,36 @@ test("my_message_all_actions", ({override}) => {
     assert.equal(response.should_display_delete_option, true);
     assert.equal(response.should_display_read_receipts_option, true);
     assert.equal(response.should_display_quote_message, true);
+});
+
+test("read_receipts_hidden_for_non_admin", ({override}) => {
+    set_page_params_no_edit_restrictions({override});
+    override(current_user, "is_admin", false);
+
+    const list = init_message_list();
+    message_lists.set_current(list);
+
+    const messages = [
+        {
+            id: 1,
+            type: "stream",
+            sender_id: mike.user_id,
+            is_hidden: false,
+            sent_by_me: false,
+            locally_echoed: false,
+            is_stream: true,
+            stream_id: 1,
+            unread: false,
+            collapsed: false,
+            not_spectator: true,
+            submessages: [],
+            edit_history: [],
+        },
+    ];
+
+    add_message_with_view(list, messages);
+    const response = popover_menus_data.get_actions_popover_content_context(1);
+    assert.equal(response.should_display_read_receipts_option, false);
 });
 
 test("not_my_message_view_actions", ({override}) => {

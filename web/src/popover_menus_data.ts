@@ -207,7 +207,8 @@ export function get_actions_popover_content_context(message_id: number): ActionP
     const conversation_time_url = hash_util.by_conversation_and_time_url(message);
 
     const should_display_delete_option = message_delete.get_deletability(message);
-    const should_display_read_receipts_option = realm.realm_enable_read_receipts && not_spectator;
+    const should_display_read_receipts_option =
+        realm.realm_enable_read_receipts && not_spectator && current_user.is_admin;
     const should_display_remind_me_option = not_spectator;
 
     const should_display_message_report_option = (): boolean => {

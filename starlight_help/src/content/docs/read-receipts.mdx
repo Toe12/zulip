@@ -13,9 +13,10 @@ import MessageActionsMenu from "../include/_MessageActionsMenu.mdx";
 import MessageLongPressMenu from "../include/_MessageLongPressMenu.mdx";
 import SaveChanges from "../include/_SaveChanges.mdx";
 
-Read receipts let you check who has read a message. You can see read receipts
-for any message, including both [channel messages](/help/introduction-to-channels)
-and [direct messages](/help/direct-messages).
+Read receipts let organization administrators and owners check who has read a
+message. They can see read receipts for any message they can access, including
+both [channel messages](/help/introduction-to-channels) and [direct
+messages](/help/direct-messages).
 
 With privacy in mind, Zulip lets you [control][configure-personal-read-receipts]
 whether your read receipts are shared, and administrators can
@@ -23,12 +24,14 @@ whether your read receipts are shared, and administrators can
 their organization.
 
 <ZulipTip>
-  Read receipts reflect whether or not someone has marked a message as read,
-  whether by viewing it, or [by marking messages as read in
-  bulk](/help/marking-messages-as-read).
+    Read receipts reflect whether or not someone has marked a message as read,
+    whether by viewing it, or [by marking messages as read in
+    bulk](/help/marking-messages-as-read).
 </ZulipTip>
 
 ## View who has read a message
+
+<AdminOnly />
 
 <Tabs>
   <TabItem label="Desktop/Web">
@@ -42,6 +45,7 @@ their organization.
       You can also use <kbd>Shift</kbd> + <kbd>V</kbd> to show or hide read receipts
       for the selected message.
     </KeyboardTip>
+
   </TabItem>
 
   <TabItem label="Mobile">
@@ -50,12 +54,13 @@ their organization.
 
       1. Tap **View read receipts**.
     </FlattenedSteps>
+
   </TabItem>
 </Tabs>
 
 <ZulipTip>
-  In addition to a list of names, you will see how many people have read
-  the message.
+    In addition to a list of names, you will see how many people have read the
+    message.
 </ZulipTip>
 
 ## Configure whether Zulip lets others see when you've read messages
@@ -67,8 +72,8 @@ list of read receipts.
 <FlattenedSteps>
   <NavigationSteps target="settings/account-and-privacy" />
 
-  1. Under **Privacy**, toggle **Let others see when I've read messages**.
-</FlattenedSteps>
+1. Under **Privacy**, toggle **Let others see when I've read messages**.
+    </FlattenedSteps>
 
 ## Configure read receipts for your organization
 
@@ -76,8 +81,8 @@ list of read receipts.
 
 You can configure:
 
-* Whether read receipts are enabled in your organization.
-* Whether new users will allow others to view read receipts by default. (Note
+- Whether read receipts are enabled in your organization.
+- Whether new users will allow others to view read receipts by default. (Note
   that users [can always change this setting][configure-personal-read-receipts]
   once they join.)
 
@@ -86,7 +91,7 @@ You can configure:
 <FlattenedSteps>
   <NavigationSteps target="settings/organization-settings" />
 
-  1. Under **Message feed settings**, toggle **Enable read receipts**.
+1. Under **Message feed settings**, toggle **Enable read receipts**.
 
   <SaveChanges />
 </FlattenedSteps>
@@ -96,16 +101,15 @@ You can configure:
 <FlattenedSteps>
   <NavigationSteps target="settings/default-user-settings" />
 
-  1. Under **Privacy settings**, toggle **Allow other users to view read receipts**.
-</FlattenedSteps>
+1. Under **Privacy settings**, toggle **Allow other users to view read receipts**.
+    </FlattenedSteps>
 
 ## Related articles
 
-* [Status and availability](/help/status-and-availability)
-* [Typing notifications](/help/typing-notifications)
-* [Marking messages as read](/help/marking-messages-as-read)
-* [Marking messages as unread](/help/marking-messages-as-unread)
+- [Status and availability](/help/status-and-availability)
+- [Typing notifications](/help/typing-notifications)
+- [Marking messages as read](/help/marking-messages-as-read)
+- [Marking messages as unread](/help/marking-messages-as-unread)
 
 [configure-personal-read-receipts]: /help/read-receipts#configure-whether-zulip-lets-others-see-when-youve-read-messages
-
 [configure-organization-read-receipts]: /help/read-receipts#configure-whether-read-receipts-are-enabled-in-your-organization

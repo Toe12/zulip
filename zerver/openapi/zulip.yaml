@@ -9743,7 +9743,11 @@ paths:
       operationId: get-read-receipts
       summary: Get a message's read receipts
       tags: ["messages"]
+      x-requires-administrator: true
       description: |
+        Organization administrators and owners can use this endpoint to view
+        read receipts for a message they can access.
+
         Returns a list containing the IDs for all users who have
         marked the message as read (and whose privacy settings allow
         sharing that information).
@@ -9758,6 +9762,8 @@ paths:
         It will never contain the message's sender.
 
         **Changes**: New in Zulip 6.0 (feature level 137).
+        Organization administrator access is required in Zulip 12.0
+        (feature level ZF-f82286).
       parameters:
         - $ref: "#/components/parameters/MessageId"
       responses:
@@ -9806,6 +9812,13 @@ paths:
                       A typical JSON response when attempting to access read receipts for
                       a message ID that either does not exist or is not accessible to the
                       current user:
+              examples:
+                permission_error:
+                  summary: Current user is not an administrator or owner.
+                  value:
+                    code: "BAD_REQUEST"
+                    msg: Must be an organization administrator
+                    result: error
   /messages/matches_narrow:
     get:
       operationId: check-messages-match-narrow

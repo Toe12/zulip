@@ -12,7 +12,7 @@ import * as loading from "./loading.ts";
 import * as message_store from "./message_store.ts";
 import * as modals from "./modals.ts";
 import * as people from "./people.ts";
-import {realm} from "./state_data.ts";
+import {current_user, realm} from "./state_data.ts";
 import * as ui_report from "./ui_report.ts";
 import * as util from "./util.ts";
 
@@ -21,7 +21,7 @@ const read_receipts_api_response_schema = z.object({
     user_ids: z.array(z.number()),
 });
 
-let interval_id: number | null = null;
+let interval_id: ReturnType<typeof globalThis.setInterval> | null = null;
 let has_initial_data = false;
 
 export function fetch_read_receipts(message_id: number): void {
@@ -101,9 +101,13 @@ export function fetch_read_receipts(message_id: number): void {
                 );
                 $modal.find(".read_receipts_list").html(render_read_receipts(context)).show();
                 $("#read_receipts_modal .modal__container").addClass("showing_read_receipts_list");
-                new SimpleBar(util.the($("#read_receipts_modal .modal__content")), {
-                    tabIndex: -1,
-                });
+                const simplebar = new SimpleBar(
+                    util.the($("#read_receipts_modal .modal__content")),
+                    {
+                        tabIndex: -1,
+                    },
+                );
+                simplebar.recalculate();
             }
             loading.destroy_indicator($("#read_receipts_modal .loading_indicator"));
         },
@@ -119,13 +123,21 @@ export function fetch_read_receipts(message_id: number): void {
 }
 
 export function show_user_list(message_id: number): void {
+    if (!current_user.is_admin) {
+        ui_report.client_error(
+            $t({defaultMessage: "Must be an organization administrator."}),
+            $("#home-error"),
+        );
+        return;
+    }
+
     $("#read-receipts-modal-container").html(render_read_receipts_modal({message_id}));
     modals.open("read_receipts_modal", {
         autoremove: true,
         on_shown() {
             has_initial_data = false;
             fetch_read_receipts(message_id);
-            interval_id = window.setInterval(() => {
+            interval_id = globalThis.setInterval(() => {
                 fetch_read_receipts(message_id);
             }, read_receipts_polling_interval_ms);
         },
