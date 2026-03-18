@@ -750,13 +750,19 @@ def build_message_send_dict(
             # Non-admin stream messages are visible only to admins and the sender.
             visible_user_ids = admins | {sender.id}
         else:
-            topic_participants = participants_for_topic(
-                realm.id, message.recipient.id, message.topic_name()
-            )
-            if topic_participants - {sender.id}:
-                # Admin replies in an existing topic are visible only to users
-                # who have already participated in that topic and the sender.
-                visible_user_ids = topic_participants | {sender.id}
+            if mentioned_user_ids:
+                # Admin messages with @mentions are visible only to the admin
+                # sender and the mentioned users.
+                info.um_eligible_user_ids |= mentioned_user_ids & info.active_user_ids
+                visible_user_ids = {sender.id} | mentioned_user_ids
+            else:
+                topic_participants = participants_for_topic(
+                    realm.id, message.recipient.id, message.topic_name()
+                )
+                if topic_participants - {sender.id}:
+                    # Admin replies in an existing topic are visible only to users
+                    # who have already participated in that topic and the sender.
+                    visible_user_ids = topic_participants | {sender.id}
 
         if visible_user_ids is not None:
 
