@@ -732,6 +732,76 @@ def build_message_send_dict(
     mentioned_bot_user_ids = default_bot_user_ids & mentioned_user_ids
     info.um_eligible_user_ids |= mentioned_bot_user_ids
 
+    sender = message.sender
+    if message.recipient.type == Recipient.STREAM:
+        visible_user_ids: set[int] | None = None
+
+        if not sender.is_realm_admin:
+            admins = set(
+                UserProfile.objects.filter(
+                    realm=realm,
+                    is_active=True,
+                    role__in=(
+                        UserProfile.ROLE_REALM_ADMINISTRATOR,
+                        UserProfile.ROLE_REALM_OWNER,
+                    ),
+                ).values_list("id", flat=True)
+            )
+            # Non-admin stream messages are visible only to admins and the sender.
+            visible_user_ids = admins | {sender.id}
+        else:
+            topic_participants = participants_for_topic(
+                realm.id, message.recipient.id, message.topic_name()
+            )
+            if topic_participants - {sender.id}:
+                # Admin replies in an existing topic are visible only to users
+                # who have already participated in that topic and the sender.
+                visible_user_ids = topic_participants | {sender.id}
+
+        if visible_user_ids is not None:
+
+            def restrict_users(user_ids: set[int]) -> set[int]:
+                return user_ids & visible_user_ids
+
+            info.active_user_ids = restrict_users(info.active_user_ids)
+            info.online_push_user_ids = restrict_users(info.online_push_user_ids)
+            info.dm_mention_email_disabled_user_ids = restrict_users(
+                info.dm_mention_email_disabled_user_ids
+            )
+            info.dm_mention_push_disabled_user_ids = restrict_users(
+                info.dm_mention_push_disabled_user_ids
+            )
+            info.stream_email_user_ids = restrict_users(info.stream_email_user_ids)
+            info.stream_push_user_ids = restrict_users(info.stream_push_user_ids)
+            info.followed_topic_email_user_ids = restrict_users(info.followed_topic_email_user_ids)
+            info.followed_topic_push_user_ids = restrict_users(info.followed_topic_push_user_ids)
+            info.topic_wildcard_mention_user_ids = restrict_users(
+                info.topic_wildcard_mention_user_ids
+            )
+            info.stream_wildcard_mention_user_ids = restrict_users(
+                info.stream_wildcard_mention_user_ids
+            )
+            info.topic_wildcard_mention_in_followed_topic_user_ids = restrict_users(
+                info.topic_wildcard_mention_in_followed_topic_user_ids
+            )
+            info.stream_wildcard_mention_in_followed_topic_user_ids = restrict_users(
+                info.stream_wildcard_mention_in_followed_topic_user_ids
+            )
+            info.muted_sender_user_ids = restrict_users(info.muted_sender_user_ids)
+            info.um_eligible_user_ids = restrict_users(info.um_eligible_user_ids)
+            info.long_term_idle_user_ids = restrict_users(info.long_term_idle_user_ids)
+            info.default_bot_user_ids = restrict_users(info.default_bot_user_ids)
+            info.all_bot_user_ids = restrict_users(info.all_bot_user_ids)
+            info.topic_participant_user_ids = restrict_users(info.topic_participant_user_ids)
+            info.push_device_registered_user_ids = restrict_users(
+                info.push_device_registered_user_ids
+            )
+            info.service_bot_tuples = [
+                (user_id, bot_type)
+                for user_id, bot_type in info.service_bot_tuples
+                if user_id in visible_user_ids
+            ]
+
     message_send_dict = SendMessageRequest(
         stream=stream,
         sender_muted_stream=info.sender_muted_stream,
