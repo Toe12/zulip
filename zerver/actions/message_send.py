@@ -38,6 +38,7 @@ from zerver.lib.exceptions import (
     StreamWithIDDoesNotExistError,
     TopicsNotAllowedError,
     TopicWildcardMentionNotAllowedError,
+    UserMentionNotAllowedError,
 )
 from zerver.lib.markdown import MessageRenderingResult, render_message_markdown
 from zerver.lib.markdown import version as markdown_version
@@ -751,10 +752,20 @@ def build_message_send_dict(
             visible_user_ids = admins | {sender.id}
         else:
             if mentioned_user_ids:
-                # Admin messages with @mentions are visible only to the admin
-                # sender and the mentioned users.
+                # Admin messages with @mentions are visible to all admins and
+                # the mentioned users.
+                admins = set(
+                    UserProfile.objects.filter(
+                        realm=realm,
+                        is_active=True,
+                        role__in=(
+                            UserProfile.ROLE_REALM_ADMINISTRATOR,
+                            UserProfile.ROLE_REALM_OWNER,
+                        ),
+                    ).values_list("id", flat=True)
+                )
                 info.um_eligible_user_ids |= mentioned_user_ids & info.active_user_ids
-                visible_user_ids = {sender.id} | mentioned_user_ids
+                visible_user_ids = admins | {sender.id} | mentioned_user_ids
             else:
                 topic_participants = participants_for_topic(
                     realm.id, message.recipient.id, message.topic_name()
@@ -2004,6 +2015,20 @@ def check_message(
     if message_send_dict.rendering_result.mentions_user_group_ids:
         mentioned_group_ids = list(message_send_dict.rendering_result.mentions_user_group_ids)
         check_user_group_mention_allowed(sender, mentioned_group_ids)
+
+    if not sender.is_realm_admin and not sender.is_bot:
+        mentioned_ids = message_send_dict.rendering_result.mentions_user_ids
+        if mentioned_ids:
+            non_admin_mentioned = UserProfile.objects.filter(
+                id__in=mentioned_ids,
+                is_active=True,
+                role__in=(
+                    UserProfile.ROLE_MEMBER,
+                    UserProfile.ROLE_GUEST,
+                ),
+            ).exists()
+            if non_admin_mentioned:
+                raise UserMentionNotAllowedError
 
     return message_send_dict
 

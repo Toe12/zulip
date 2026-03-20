@@ -63,6 +63,7 @@ class ErrorCode(Enum):
     INVALID_BOUNCER_PUBLIC_KEY = auto()
     REQUEST_EXPIRED = auto()
     PUSH_SERVICE_NOT_CONFIGURED = auto()
+    USER_MENTION_NOT_ALLOWED = auto()
     NO_ACTIVE_PUSH_DEVICE = auto()
     FAILED_TO_CONNECT_BOUNCER = auto()
     INTERNAL_SERVER_ERROR_ON_BOUNCER = auto()
@@ -742,6 +743,18 @@ class TopicWildcardMentionNotAllowedError(JsonableError):
     @override
     def msg_format() -> str:
         return _("You do not have permission to use topic wildcard mentions in this topic.")
+
+
+class UserMentionNotAllowedError(JsonableError):
+    code: ErrorCode = ErrorCode.USER_MENTION_NOT_ALLOWED
+
+    def __init__(self) -> None:
+        pass
+
+    @staticmethod
+    @override
+    def msg_format() -> str:
+        return _("You do not have permission to mention other users.")
 
 
 class ExpectationMismatchError(JsonableError):

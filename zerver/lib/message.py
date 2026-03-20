@@ -592,6 +592,11 @@ def has_message_access(
     if stream.is_public() and user_profile.can_access_public_streams():
         return True
 
+    # Admins with a UserMessage row have explicit access to this message,
+    # regardless of subscription or stream visibility.
+    if user_profile.is_realm_admin and has_user_message():
+        return True
+
     if not stream.is_history_public_to_subscribers():
         # Unless history is public to subscribers, you need to both:
         # (1) Have directly received the message.
