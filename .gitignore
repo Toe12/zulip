@@ -22,6 +22,9 @@
 /zproject/dev-secrets.conf
 /zproject/dev_saml.cert
 /zproject/custom_dev_settings.py
+/zproject/.env
+/zproject/AuthKey_*.p8
+/zproject/firebase-credentials.json
 /tools/conf.ini
 /tools/custom_provision
 /tools/droplets/conf.ini

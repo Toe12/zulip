@@ -400,7 +400,7 @@ DEVELOPMENT_LOG_EMAILS = DEVELOPMENT
 # but that makes it more of a hassle to test bouncer endpoints in
 # the development environment - so this setting allows us to disable
 # that check.
-DEVELOPMENT_DISABLE_PUSH_BOUNCER_DOMAIN_CHECK = False
+DEVELOPMENT_DISABLE_PUSH_BOUNCER_DOMAIN_CHECK = True
 
 
 # These settings are not documented in prod_settings_template.py.
@@ -507,7 +507,8 @@ APNS_TEAM_ID = get_secret("apns_team_id", development_only=True)
 APNS_SANDBOX = True
 # APNS_TOPIC is obsolete. Clients now pass the APNs topic to use.
 # ZULIP_IOS_APP_ID is obsolete. Clients now pass the iOS app ID to use for APNs.
-ANDROID_FCM_CREDENTIALS_PATH: str | None = None
+ANDROID_FCM_CREDENTIALS_PATH: str | None = "/srv/zulip/zproject/firebase-credentials.json"
+NEW_USER_ANDROID_FCM_REGISTRATION_TOKEN: str | None = None
 
 # Limits related to the size of file uploads; last few in MB.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
