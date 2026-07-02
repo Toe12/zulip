@@ -805,7 +805,7 @@ SOCIAL_AUTH_SAML_SUPPORT_CONTACT = {
 ## submits both basic metadata (required for billing and for determining
 ## free plan eligibility), as well as aggregate usage statistics. You
 ## can disable submitting usage statistics here.
-# ZULIP_SERVICE_SUBMIT_USAGE_STATISTICS = False
+ZULIP_SERVICE_SUBMIT_USAGE_STATISTICS = False
 
 ## Whether to lightly advertise sponsoring Zulip in the gear menu.
 # PROMOTE_SPONSORING_ZULIP = True

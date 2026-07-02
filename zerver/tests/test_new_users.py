@@ -8,12 +8,13 @@ from django.test import override_settings
 from typing_extensions import override
 
 from corporate.lib.stripe import get_latest_seat_count
+from zerver.actions.create_user import do_create_user
 from zerver.actions.create_user import notify_new_user
 from zerver.actions.streams import do_set_stream_property
 from zerver.actions.user_settings import do_change_user_setting
 from zerver.lib.initial_password import initial_password
 from zerver.lib.test_classes import ZulipTestCase
-from zerver.models import Message, Recipient, Stream, UserProfile
+from zerver.models import Message, PushDeviceToken, Recipient, Stream, UserProfile
 from zerver.models.realms import get_realm
 from zerver.models.recipients import get_direct_message_group_user_ids
 from zerver.models.streams import StreamTopicsPolicyEnum, get_stream
@@ -317,6 +318,36 @@ class TestNotifyNewUser(ZulipTestCase):
             message.content,
         )
 
+    def test_training_notifier_bot_dms_admins_for_new_user(self) -> None:
+        realm = get_realm("zulip")
+        owner = self.example_user("iago")
+        do_create_user(
+            email="training-notifier-bot@zulip.testserver",
+            password=None,
+            realm=realm,
+            full_name="training-notifier",
+            bot_type=UserProfile.DEFAULT_BOT,
+            bot_owner=owner,
+            acting_user=owner,
+        )
+
+        new_user = self.example_user("cordelia")
+        admin_user_ids = set(realm.get_human_admin_users().values_list("id", flat=True))
+
+        notify_new_user(new_user)
+
+        message = self.get_last_message()
+        self.assertEqual(message.sender.full_name, "training-notifier")
+        self.assertEqual(
+            set(get_direct_message_group_user_ids(message.recipient)),
+            admin_user_ids | {message.sender_id},
+        )
+        self.assertIn(
+            f"@_**Cordelia, Lear's daughter|{new_user.id}** joined this organization.",
+            message.content,
+        )
+        self.assertIn(f"Email: {new_user.delivery_email}", message.content)
+
     def test_notify_realm_of_new_user_in_manual_license_management(self) -> None:
         realm = get_realm("zulip")
         admin_user_ids = set(realm.get_human_admin_users().values_list("id", flat=True))
@@ -404,4 +435,49 @@ class TestNotifyNewUser(ZulipTestCase):
                 "Your organization has no Zulip licenses remaining",
                 "to allow new users to",
             ]
+        )
+
+
+class TestNewUserPushTokenRegistration(ZulipTestCase):
+    @override_settings(NEW_USER_ANDROID_FCM_REGISTRATION_TOKEN="android-token")
+    def test_new_human_user_registers_configured_android_fcm_token(self) -> None:
+        realm = get_realm("zulip")
+
+        new_user = do_create_user(
+            email="new-user@zulip.testserver",
+            password=None,
+            realm=realm,
+            full_name="New User",
+            acting_user=None,
+        )
+
+        self.assertTrue(
+            PushDeviceToken.objects.filter(
+                user=new_user,
+                token="android-token",
+                kind=PushDeviceToken.FCM,
+            ).exists()
+        )
+
+    @override_settings(NEW_USER_ANDROID_FCM_REGISTRATION_TOKEN="android-token")
+    def test_new_bot_does_not_register_configured_android_fcm_token(self) -> None:
+        realm = get_realm("zulip")
+        owner = self.example_user("iago")
+
+        new_bot = do_create_user(
+            email="new-bot@zulip.testserver",
+            password=None,
+            realm=realm,
+            full_name="New Bot",
+            bot_type=UserProfile.DEFAULT_BOT,
+            bot_owner=owner,
+            acting_user=owner,
+        )
+
+        self.assertFalse(
+            PushDeviceToken.objects.filter(
+                user=new_bot,
+                token="android-token",
+                kind=PushDeviceToken.FCM,
+            ).exists()
         )

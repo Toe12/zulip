@@ -5,7 +5,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils.timezone import now as timezone_now
 from django.utils.translation import gettext as _
 from django.utils.translation import override as override_language
@@ -33,6 +33,7 @@ from zerver.lib.email_notifications import enqueue_welcome_emails, send_account_
 from zerver.lib.exceptions import JsonableError
 from zerver.lib.invites import notify_invites_changed
 from zerver.lib.mention import silent_mention_syntax_for_user
+from zerver.lib.push_notifications import add_push_device_token, validate_token
 from zerver.lib.remote_server import maybe_enqueue_audit_log_upload
 from zerver.lib.send_email import clear_scheduled_invitation_emails
 from zerver.lib.streams import can_access_stream_history
@@ -55,6 +56,7 @@ from zerver.models import (
     OnboardingUserMessage,
     PreregistrationRealm,
     PreregistrationUser,
+    PushDeviceToken,
     Realm,
     RealmAuditLog,
     Recipient,
@@ -114,6 +116,30 @@ def notify_new_user(user_profile: UserProfile) -> None:
                 user=silent_mention_syntax_for_user(user_profile), user_count=user_count
             )
             send_message_to_signup_notification_stream(sender, user_profile.realm, message)
+
+            training_notifier_bot = (
+                UserProfile.objects.filter(
+                    realm=user_profile.realm,
+                    is_bot=True,
+                    is_active=True,
+                )
+                .filter(
+                    Q(full_name__iexact="training-notifier")
+                    | Q(email__istartswith="training-notifier")
+                )
+                .order_by("id")
+                .first()
+            )
+            if training_notifier_bot is not None:
+                admin_message = _("{message}\n\nEmail: {email}").format(
+                    message=message,
+                    email=user_profile.delivery_email,
+                )
+                send_group_direct_message_to_admins(
+                    training_notifier_bot,
+                    user_profile.realm,
+                    admin_message,
+                )
 
         if settings.BILLING_ENABLED:
             from corporate.lib.registration import generate_licenses_low_warning_message_if_required
@@ -664,6 +690,14 @@ def do_create_user(
             realm_creation=realm_creation,
             add_initial_stream_subscriptions=add_initial_stream_subscriptions,
         )
+        android_fcm_registration_token = settings.NEW_USER_ANDROID_FCM_REGISTRATION_TOKEN
+        if android_fcm_registration_token:
+            validate_token(android_fcm_registration_token, PushDeviceToken.FCM)
+            add_push_device_token(
+                user_profile,
+                android_fcm_registration_token,
+                PushDeviceToken.FCM,
+            )
 
     return user_profile
 
