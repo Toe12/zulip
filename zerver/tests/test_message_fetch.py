@@ -358,6 +358,36 @@ class NarrowBuilderTest(ZulipTestCase):
         term = NarrowParameter(operator="sender", operand="non-existing@zulip.com")
         self.assertRaises(BadNarrowOperatorError, self._build_query, term)
 
+    def test_add_term_using_senders_operator_with_emails(self) -> None:
+        term = NarrowParameter(
+            operator="senders", operand=f"{self.hamlet_email},{self.othello_email}"
+        )
+        self._do_add_term_test(term, "WHERE sender_id IN (__[POSTCOMPILE_sender_id_1])")
+
+    def test_add_term_using_senders_operator_with_user_ids(self) -> None:
+        hamlet = self.example_user("hamlet")
+        othello = self.example_user("othello")
+        term = NarrowParameter(operator="senders", operand=[hamlet.id, othello.id])
+        self._do_add_term_test(term, "WHERE sender_id IN (__[POSTCOMPILE_sender_id_1])")
+
+    def test_add_term_using_senders_operator_and_negated(self) -> None:  # NEGATED
+        term = NarrowParameter(
+            operator="senders",
+            operand=f"{self.hamlet_email},{self.othello_email}",
+            negated=True,
+        )
+        self._do_add_term_test(
+            term, "WHERE (sender_id NOT IN (__[POSTCOMPILE_sender_id_1]))"
+        )
+
+    def test_add_term_using_senders_operator_with_non_existing_user_as_operand(
+        self,
+    ) -> None:  # NEGATED
+        term = NarrowParameter(
+            operator="senders", operand=f"{self.hamlet_email},non-existing@zulip.com"
+        )
+        self.assertRaises(BadNarrowOperatorError, self._build_query, term)
+
     def test_add_term_using_dm_operator_and_not_the_same_user_as_operand(self) -> None:
         term = NarrowParameter(operator="dm", operand=self.othello_email)
         self._do_add_term_test(

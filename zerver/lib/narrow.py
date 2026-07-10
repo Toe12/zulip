@@ -125,7 +125,7 @@ class NarrowParameter(BaseModel):
             "mentions",
             "with",
         ]
-        operators_supporting_ids = ["pm-with", "dm"]
+        operators_supporting_ids = ["pm-with", "dm", "senders"]
         operators_non_empty_operand = {"search"}
 
         operator = self.operator
@@ -157,6 +157,7 @@ def is_spectator_compatible(narrow: Iterable[NarrowParameter]) -> bool:
         *channels_operators,
         "topic",
         "sender",
+        "senders",
         "has",
         "search",
         "near",
@@ -297,6 +298,9 @@ class NarrowBuilder:
             "streams": self.by_channels,
             "topic": self.by_topic,
             "sender": self.by_sender,
+            # "senders" matches messages sent by *any* of a list of users,
+            # e.g. to follow both sides of a conversation in a busy channel.
+            "senders": self.by_senders,
             "near": self.by_near,
             "id": self.by_id,
             "search": self.by_search,
@@ -517,6 +521,32 @@ class NarrowBuilder:
             raise BadNarrowOperatorError("unknown user " + str(operand))
 
         cond = column("sender_id", Integer) == literal(sender.id)
+        return query.where(maybe_negate(cond))
+
+    def by_senders(
+        self, query: Select, operand: str | Iterable[int], maybe_negate: ConditionTransform
+    ) -> Select:
+        # Matches messages sent by any of the given users (OR semantics),
+        # unlike multiple "sender" terms, which intersect to nothing.
+        try:
+            if isinstance(operand, str):
+                senders = [
+                    get_user_including_cross_realm(email.strip(), self.realm)
+                    for email in operand.split(",")
+                ]
+            else:
+                senders = [
+                    get_user_by_id_in_realm_including_cross_realm(user_id, self.realm)
+                    for user_id in operand
+                ]
+        except UserProfile.DoesNotExist:
+            raise BadNarrowOperatorError("unknown user in " + str(operand))
+
+        sender_ids = [sender.id for sender in senders]
+        if sender_ids == []:
+            return query.where(maybe_negate(false()))
+
+        cond = column("sender_id", Integer).in_(sender_ids)
         return query.where(maybe_negate(cond))
 
     def by_near(self, query: Select, operand: str, maybe_negate: ConditionTransform) -> Select:

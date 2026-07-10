@@ -47,6 +47,7 @@ export const narrow_canonical_operator_schema = z.enum([
     "near",
     "search",
     "sender",
+    "senders",
     "topic",
     "with",
 ]);
@@ -126,6 +127,11 @@ export const narrow_canonical_term_schema = z.discriminatedUnion("operator", [
     z.object({
         operator: z.literal("sender"),
         operand: z.number(),
+        negated: z.optional(z.boolean()),
+    }),
+    z.object({
+        operator: z.literal("senders"),
+        operand: z.array(z.number()),
         negated: z.optional(z.boolean()),
     }),
     z.object({

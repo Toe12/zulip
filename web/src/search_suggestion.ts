@@ -118,6 +118,7 @@ const incompatible_patterns: Record<SearchFilter, TermPattern[]> = {
         {operator: "topic"},
     ],
     sender: [{operator: "sender"}, {operator: "from"}],
+    senders: [{operator: "senders"}],
     "is:starred": [{operator: "is", operand: "starred"}],
     "is:mentioned": [{operator: "is", operand: "mentioned"}],
     "is:followed": [
@@ -269,7 +270,7 @@ function get_channel_suggestions(
 }
 
 function get_group_suggestions(
-    group_operator: "dm" | "dm-including",
+    group_operator: "dm" | "dm-including" | "senders",
 ): (last: NarrowCanonicalTermSuggestion, terms: NarrowCanonicalTerm[]) => Suggestion[] {
     return (last: NarrowCanonicalTermSuggestion, terms: NarrowCanonicalTerm[]): Suggestion[] => {
         // We only suggest groups once a term with a valid user already exists
@@ -323,12 +324,27 @@ function get_group_suggestions(
         // operand (not including the last part).
         const person_matcher = people.build_person_matcher(new_query);
         let persons = people.filter_all_persons((person) => {
-            if (person.user_id === people.my_current_user_id()) {
+            // For DM operators, the current user is implicitly part of
+            // the conversation, so we don't suggest them. For "senders",
+            // adding yourself is a core use case (e.g. following both
+            // sides of a conversation), so we allow it.
+            if (
+                group_operator !== "senders" &&
+                person.user_id === people.my_current_user_id()
+            ) {
                 return false;
             }
 
             if (existing_user_ids.includes(person.user_id)) {
                 return false;
+            }
+            // For "senders", typing "me" refers to the current user.
+            if (
+                group_operator === "senders" &&
+                person.user_id === people.my_current_user_id() &&
+                new_query.toLowerCase() === "me"
+            ) {
+                return true;
             }
             return new_query === "" || person_matcher(person);
         });
@@ -387,7 +403,7 @@ function get_person_suggestions(
     people_getter: () => User[],
     last: NarrowCanonicalTermSuggestion,
     terms: NarrowCanonicalTerm[],
-    autocomplete_operator: "dm" | "sender" | "dm-including",
+    autocomplete_operator: "dm" | "sender" | "dm-including" | "senders",
 ): Suggestion[] {
     if (last.operator === "is" && last.operand === "dm") {
         last = {operator: "dm", operand: "", negated: false};
@@ -408,6 +424,7 @@ function get_person_suggestions(
         switch (autocomplete_operator) {
             case "dm":
             case "dm-including":
+            case "senders":
                 terms.push({
                     operator: autocomplete_operator,
                     operand: [person.user_id],
@@ -803,24 +820,41 @@ function get_sent_by_me_suggestions(
     const sender_query = negated_symbol + "sender:" + people.my_current_user_id();
     const sender_email_string = negated_symbol + "sender:" + people.my_current_email();
     const sender_me_query = negated_symbol + "sender:me";
+    const senders_query = negated_symbol + "senders:" + people.my_current_user_id();
+    const senders_email_string = negated_symbol + "senders:" + people.my_current_email();
+    const senders_me_query = negated_symbol + "senders:me";
     const from_string = negated_symbol + "from";
     const sent_string = negated_symbol + "sent";
 
-    if (match_criteria(terms, incompatible_patterns.sender)) {
-        return [];
-    }
+    const suggestions: Suggestion[] = [];
 
     if (
-        last.operator === "" ||
-        sender_query.startsWith(last_string) ||
-        sender_me_query.startsWith(last_string) ||
-        from_string.startsWith(last_string) ||
-        sender_email_string.startsWith(last_string) ||
-        last_string === sent_string
+        !match_criteria(terms, incompatible_patterns.sender) &&
+        (last.operator === "" ||
+            sender_query.startsWith(last_string) ||
+            sender_me_query.startsWith(last_string) ||
+            from_string.startsWith(last_string) ||
+            sender_email_string.startsWith(last_string) ||
+            last_string === sent_string)
     ) {
-        return [sender_query];
+        suggestions.push(sender_query);
     }
-    return [];
+
+    // Suggest tagging yourself in a multi-sender narrow for
+    // "senders"-shaped queries, including "senders:me". We require the
+    // typed string to be sender-shaped so this doesn't fire on empty
+    // or unrelated queries.
+    if (
+        last_string.startsWith(negated_symbol + "sender") &&
+        !match_criteria(terms, incompatible_patterns.senders) &&
+        (senders_query.startsWith(last_string) ||
+            senders_me_query.startsWith(last_string) ||
+            senders_email_string.startsWith(last_string))
+    ) {
+        suggestions.push(senders_query);
+    }
+
+    return suggestions;
 }
 
 function get_operator_suggestions(
@@ -854,6 +888,7 @@ function get_operator_suggestions(
             "dm",
             "dm-including",
             "sender",
+            "senders",
             "near",
         ];
         legacy_operator_choices = ["from", "pm-with", "streams", "stream"];
@@ -902,6 +937,7 @@ function get_operator_suggestions(
         switch (choice) {
             case "dm":
             case "dm-including":
+            case "senders":
                 return format_as_suggestion(
                     [
                         {
@@ -1025,7 +1061,8 @@ class Attacher {
                 const new_search_string = suggestion;
                 if (
                     (new_search_string.startsWith("dm:") ||
-                        new_search_string.startsWith("dm-including:")) &&
+                        new_search_string.startsWith("dm-including:") ||
+                        new_search_string.startsWith("senders:")) &&
                     new_search_string.includes(last_base_string)
                 ) {
                     suggestion_line = [...this.base.slice(0, -1), suggestion];
@@ -1091,7 +1128,7 @@ export let get_suggestions = function (
         last = text_search_terms.at(-1)!;
     }
 
-    const person_suggestion_ops = ["sender", "dm", "dm-including"];
+    const person_suggestion_ops = ["sender", "senders", "dm", "dm-including"];
 
     // Handle spaces in person name in new suggestions only. Checks if the last operator is 'search'
     // and the second last operator in search_terms is one out of person_suggestion_ops.
@@ -1143,7 +1180,7 @@ export let get_suggestions = function (
     const people_getter = make_people_getter(last);
 
     function get_people(
-        flavor: "dm" | "sender" | "dm-including",
+        flavor: "dm" | "sender" | "dm-including" | "senders",
     ): (last: NarrowCanonicalTermSuggestion, base_terms: NarrowCanonicalTerm[]) => Suggestion[] {
         return function (
             last: NarrowCanonicalTermSuggestion,
@@ -1161,6 +1198,7 @@ export let get_suggestions = function (
         // searching user probably is looking to make a group DM.
         get_group_suggestions("dm"),
         get_group_suggestions("dm-including"),
+        get_group_suggestions("senders"),
         get_channels_filter_suggestions,
         get_operator_suggestions,
         get_is_filter_suggestions,
@@ -1168,6 +1206,7 @@ export let get_suggestions = function (
         get_channel_suggestions,
         get_people("dm"),
         get_people("sender"),
+        get_people("senders"),
         get_people("dm-including"),
         get_topic_suggestions,
         get_has_filter_suggestions,
@@ -1180,6 +1219,8 @@ export let get_suggestions = function (
             get_is_filter_suggestions,
             get_channel_suggestions,
             get_people("sender"),
+            get_people("senders"),
+            get_group_suggestions("senders"),
             get_topic_suggestions,
             get_has_filter_suggestions,
         ];
