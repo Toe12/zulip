@@ -75,7 +75,7 @@ export function redraw_title(): void {
         " - " +
         realm.realm_name +
         " - " +
-        "Zulip";
+        "basecomms";
 
     document.title = new_title;
 }
