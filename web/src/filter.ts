@@ -188,6 +188,9 @@ function build_term_predicate(term: NarrowCanonicalTerm): ((message: Message) =>
         case "sender":
             return (message) => message.sender_id === term.operand;
 
+        case "senders":
+            return (message) => term.operand.includes(message.sender_id);
+
         case "dm": {
             const operand_ids = people.sorted_other_user_ids(term.operand);
             return (message) => {
@@ -235,6 +238,7 @@ const USER_OPERATORS = new Set([
     "dm-including",
     "dm",
     "sender",
+    "senders",
     "from",
     "pm-with",
     "group-pm-with",
@@ -291,6 +295,7 @@ export class Filter {
             case "topic":
                 break;
             case "sender":
+            case "senders":
             case "dm":
             case "dm-including":
                 break;
@@ -519,6 +524,30 @@ export class Filter {
                     };
                     break;
                 }
+                case "senders": {
+                    if (suggestion.operand === "") {
+                        return undefined;
+                    }
+                    // Allow "me" anywhere in the list (e.g. "senders:me,12"),
+                    // resolving it to the current user.
+                    const operand = [
+                        ...new Set(
+                            suggestion.operand
+                                .split(",")
+                                .map((part) =>
+                                    part.trim().toLowerCase() === "me"
+                                        ? people.my_current_user_id()
+                                        : Number(part),
+                                ),
+                        ),
+                    ];
+                    potential_narrow_term = {
+                        operator: canonical_operator,
+                        operand,
+                        negated: suggestion.negated,
+                    };
+                    break;
+                }
                 case "sender": {
                     let operand: number;
                     if (suggestion.operand.toLowerCase() === "me") {
@@ -588,6 +617,7 @@ export class Filter {
                 return true;
             case "sender":
                 return people.is_valid_user_id(term.operand);
+            case "senders":
             case "dm":
             case "dm-including":
                 return people.is_valid_user_ids(term.operand);
@@ -663,6 +693,7 @@ export class Filter {
             "dm-including",
             "with",
             "sender",
+            "senders",
             "near",
             "id",
             "is-alerted",
@@ -728,6 +759,9 @@ export class Filter {
 
             case "sender":
                 return verb + "sent by";
+
+            case "senders":
+                return verb + "sent by any of";
 
             case "dm":
                 return verb + "direct messages with";
