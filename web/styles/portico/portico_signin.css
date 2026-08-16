@@ -40,11 +40,11 @@ html {
     font-size: 0.9em;
 
     & a {
-        color: hsl(164deg 100% 23%);
+        color: hsl(239deg 84% 60%);
 
         &:hover {
             text-decoration: none;
-            color: hsl(156deg 62% 61%);
+            color: hsl(239deg 90% 74%);
         }
     }
 }
@@ -72,11 +72,11 @@ html {
     font-size: 1.2em;
 
     & a {
-        color: hsl(164deg 100% 23%);
+        color: hsl(239deg 84% 60%);
 
         &:hover {
             text-decoration: none;
-            color: hsl(156deg 62% 61%);
+            color: hsl(239deg 90% 74%);
         }
     }
 }
@@ -222,8 +222,8 @@ html {
             border-color 0.3s ease;
 
         &:hover {
-            color: hsl(156deg 62% 61%);
-            border-color: hsl(156deg 62% 61%);
+            color: hsl(239deg 90% 74%);
+            border-color: hsl(239deg 90% 74%);
         }
 
         &.dev-login-button {
@@ -430,7 +430,7 @@ html {
         box-sizing: border-box;
         outline: none;
         color: hsl(0deg 0% 100%);
-        background-color: hsl(213deg 23% 25%);
+        background-color: hsl(239deg 84% 67%);
 
         margin: 25px 0 5px;
         height: 50px;
@@ -442,15 +442,15 @@ html {
         transition-property: background-color, outline;
 
         &:hover {
-            background-color: hsl(213deg 33% 31%);
+            background-color: hsl(243deg 75% 59%);
         }
 
         &:active {
-            background-color: hsl(214deg 28% 16%);
+            background-color: hsl(243deg 75% 50%);
         }
 
         &:focus {
-            outline: 3px solid hsl(213deg 81% 79%);
+            outline: 3px solid hsl(239deg 84% 84%);
         }
 
         &.full-width {
@@ -957,7 +957,7 @@ button#register_auth_button_gitlab {
 
 .split-view .actions a,
 .back-to-login {
-    color: hsl(164deg 100% 23%);
+    color: hsl(239deg 84% 60%);
     text-decoration: none;
     font-weight: 600;
     font-size: 0.8em;
@@ -968,7 +968,7 @@ button#register_auth_button_gitlab {
 
     &:hover {
         text-decoration: none;
-        color: hsl(156deg 62% 61%);
+        color: hsl(239deg 90% 74%);
     }
 }
 
@@ -1639,7 +1639,7 @@ button#register_auth_button_gitlab {
     }
 
     &:focus-visible {
-        outline: 1px solid hsl(213deg 81% 79%);
+        outline: 1px solid hsl(239deg 84% 84%);
     }
 }
 

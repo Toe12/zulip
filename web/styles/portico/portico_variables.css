@@ -1,6 +1,6 @@
 :root {
-    --color-background-gradient-start: hsl(209deg 40% 50%);
-    --color-background-gradient-end: hsl(210deg 48% 69%);
+    --color-background-gradient-start: hsl(221deg 39% 18%);
+    --color-background-gradient-end: hsl(243deg 60% 45%);
     /* This is the same color as set on `--color-table-background` in
        comparison_table.css. */
     --color-background-marketing-page: hsl(0deg 0% 100% / 80%);
@@ -18,16 +18,16 @@
     --color-box-header: hsl(223deg 43% 25%);
     --color-box-copy: hsl(223deg 43% 25%);
     --color-box-copy-fine-print: hsl(223deg 43% 55%);
-    --color-link: hsl(210deg 94% 42%);
-    --color-link-hover: hsl(210deg 100% 50%);
-    --color-link-underline: hsl(210deg 94% 42% / 30%);
-    --color-link-underline-hover: hsl(210deg 100% 50%);
+    --color-link: hsl(239deg 84% 60%);
+    --color-link-hover: hsl(239deg 84% 67%);
+    --color-link-underline: hsl(239deg 84% 60% / 30%);
+    --color-link-underline-hover: hsl(239deg 84% 67%);
     --color-link-underline-alternate: hsl(210deg 94% 100% / 40%);
     --color-link-underline-alternate-hover: hsl(210deg 94% 100% / 80%);
     --color-prominent-border: var(--color-link);
 
     @media (prefers-color-scheme: dark) {
-        --color-background-gradient-start: hsl(209deg 63% 40%);
-        --color-background-gradient-end: hsl(238deg 28% 50%);
+        --color-background-gradient-start: hsl(221deg 39% 12%);
+        --color-background-gradient-end: hsl(243deg 50% 38%);
     }
 }
