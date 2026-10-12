@@ -3,14 +3,21 @@ import * as z from "zod/mini";
 import * as blueslip from "./blueslip.ts";
 import {$t} from "./i18n.ts";
 import * as people from "./people.ts";
+import type {TodoAssignee} from "./todo_assignee_pill.ts";
 
 // Any single user should send add a finite number of tasks
 // to a todo list. We arbitrarily pick this value.
 const MAX_IDX = 1000;
 
+const assignee_schema = z.object({user_id: z.int(), email: z.string()});
+
 export const todo_widget_extra_data_schema = z.object({
     task_list_title: z.optional(z.string()),
-    tasks: z.optional(z.array(z.object({task: z.string(), desc: z.string()}))),
+    tasks: z.optional(
+        z.array(z.object({task: z.string(), desc: z.string(), deadline: z.optional(z.string())})),
+    ),
+    // The user the list is shared with (by direct message), if any.
+    assignee: z.optional(z.nullable(assignee_schema)),
 });
 
 export type TodoWidgetExtraData = z.infer<typeof todo_widget_extra_data_schema>;
@@ -31,6 +38,7 @@ const new_task_inbound_data_schema = z.object({
     key: z.int().check(z.nonnegative(), z.lte(MAX_IDX)),
     task: z.string(),
     desc: z.string(),
+    deadline: z.optional(z.string()),
     completed: z.boolean(),
 });
 
@@ -49,14 +57,18 @@ type TaskStrikeOutboundData = {
 type TodoTask = {
     task: string;
     desc: string;
+    deadline?: string | undefined;
 };
 
 type Task = {
     task: string;
     desc: string;
+    deadline?: string | undefined;
     idx: number;
     key: string;
     completed: boolean;
+    status_icon?: string;
+    locked?: boolean;
 };
 
 export type TodoWidgetOutboundData =
@@ -70,6 +82,7 @@ export class TaskData {
     input_mode: boolean;
     report_error_function: (msg: string, more_info?: Record<string, unknown>) => void;
     task_list_title: string;
+    assignee: TodoAssignee | undefined;
     task_map = new Map<string, Task>();
     my_idx = 1;
 
@@ -114,13 +127,18 @@ export class TaskData {
         },
 
         new_task: {
-            outbound: (task: string, desc: string): NewTaskOutboundData | undefined => {
+            outbound: (
+                task: string,
+                desc: string,
+                deadline?: string,
+            ): NewTaskOutboundData | undefined => {
                 this.my_idx += 1;
                 const event = {
                     type: "new_task" as const,
                     key: this.my_idx,
                     task,
                     desc,
+                    deadline: deadline ?? "",
                     completed: false,
                 };
 
@@ -146,6 +164,7 @@ export class TaskData {
                 const idx = data.key;
                 const task = data.task;
                 const desc = data.desc;
+                const deadline = data.deadline;
 
                 const key = idx + "," + sender_id;
                 const completed = data.completed;
@@ -153,6 +172,7 @@ export class TaskData {
                 const task_data = {
                     task,
                     desc,
+                    deadline,
                     idx,
                     key,
                     completed,
@@ -179,7 +199,7 @@ export class TaskData {
                 return event;
             },
 
-            inbound: (_sender_id: number, raw_data: unknown): void => {
+            inbound: (sender_id: number, raw_data: unknown): void => {
                 const task_strike_inbound_data_schema = z.object({
                     type: z.literal("strike"),
                     key: z.string(),
@@ -201,6 +221,12 @@ export class TaskData {
                     return;
                 }
 
+                // In a list with an assignee, only the author can
+                // uncheck a task (the server enforces this too).
+                if (item.completed && this.is_uncheck_restricted(sender_id)) {
+                    return;
+                }
+
                 item.completed = !item.completed;
             },
         },
@@ -210,11 +236,13 @@ export class TaskData {
         message_sender_id,
         task_list_title,
         tasks,
+        assignee,
         report_error_function,
     }: {
         message_sender_id: number;
         task_list_title: string;
         tasks: TodoTask[];
+        assignee?: TodoAssignee | null | undefined;
         report_error_function: (msg: string, more_info?: Record<string, unknown>) => void;
     }) {
         this.message_sender_id = message_sender_id;
@@ -222,6 +250,7 @@ export class TaskData {
         // input_mode indicates if the task list title is being input currently
         this.input_mode = this.is_my_task_list(); // for now
         this.report_error_function = report_error_function;
+        this.assignee = assignee ?? undefined;
         this.task_list_title = "";
         if (task_list_title) {
             this.set_task_list_title(task_list_title);
@@ -234,6 +263,7 @@ export class TaskData {
                 key: i,
                 task: data.task,
                 desc: data.desc,
+                deadline: data.deadline ?? "",
                 completed: false,
             });
         }
@@ -243,6 +273,10 @@ export class TaskData {
         return people.is_my_user_id(this.message_sender_id);
     }
 
+    is_uncheck_restricted(user_id: number): boolean {
+        return this.assignee !== undefined && user_id !== this.message_sender_id;
+    }
+
     set_task_list_title(new_title: string): void {
         this.input_mode = false;
         this.task_list_title = new_title;
@@ -250,6 +284,16 @@ export class TaskData {
 
     get_task_list_title(): string {
         return this.task_list_title;
+    }
+
+    get_assignee_name(): string | undefined {
+        if (this.assignee === undefined) {
+            return undefined;
+        }
+        return (
+            people.maybe_get_user_by_id(this.assignee.user_id, true)?.full_name ??
+            this.assignee.email
+        );
     }
 
     set_input_mode(): void {
@@ -268,6 +312,15 @@ export class TaskData {
         all_tasks: Task[];
     } {
         const all_tasks = [...this.task_map.values()];
+        const now = Date.now();
+        for (const item of all_tasks) {
+            item.status_icon = item.completed
+                ? "✅"
+                : item.deadline && new Date(item.deadline).getTime() < now
+                  ? "⚠️"
+                  : "⏳";
+            item.locked = item.completed && this.is_uncheck_restricted(this.me);
+        }
 
         const widget_data = {
             all_tasks,

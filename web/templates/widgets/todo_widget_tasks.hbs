@@ -2,15 +2,17 @@
     <li>
         <label class="checkbox">
             <span class="todo-checkbox">
-                <input type="checkbox" class="task" data-key="{{ key }}" {{#if completed}}checked{{/if}}/>
+                <input type="checkbox" class="task" data-key="{{ key }}" {{#if completed}}checked{{/if}} {{#if locked}}disabled title="{{t 'Only the author of the list can uncheck this task.'}}"{{/if}}/>
                 <span class="custom-checkbox"></span>
             </span>
             <span class="todo-task">
+                {{ status_icon }}
                 {{#if completed}}
                 <s><strong>{{ task }}</strong>{{#if desc }}: {{ desc }}{{/if}}</s>
                 {{else}}
                 <strong>{{ task }}</strong>{{#if desc }}: {{ desc }}{{/if}}
                 {{/if}}
+                {{#if deadline}}<span class="todo-deadline"> ({{ deadline }})</span>{{/if}}
             </span>
         </label>
     </li>

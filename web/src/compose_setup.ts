@@ -555,7 +555,19 @@ export function initialize(): void {
                     e.preventDefault();
                     e.stopPropagation();
                     const todo_message_content = widget_modal.frame_todo_message_content();
-                    compose_ui.insert_syntax_and_focus(todo_message_content);
+                    const assignee = widget_modal.get_todo_list_assignee();
+                    if (assignee === undefined) {
+                        compose_ui.insert_syntax_and_focus(todo_message_content);
+                    } else {
+                        // A list with an assignee is shared only with that
+                        // user, so it is sent as a direct message to them.
+                        compose_actions.start({
+                            message_type: "private",
+                            private_message_recipient_ids: [assignee.user_id],
+                            content: todo_message_content,
+                            trigger: "todo list assignee",
+                        });
+                    }
                 },
                 on_show() {
                     setTimeout(() => {
