@@ -21,11 +21,12 @@ export function activate({any_data, message}: {any_data: AnyWidgetData; message:
     widget_data: WidgetData;
 } {
     assert(any_data.widget_type === "todo");
-    const {task_list_title = "", tasks = []} = any_data.extra_data ?? {};
+    const {task_list_title = "", tasks = [], assignee} = any_data.extra_data ?? {};
     const task_data = new TaskData({
         message_sender_id: message.sender_id,
         task_list_title,
         tasks,
+        assignee,
         report_error_function: blueslip.warn,
     });
     const widget_data = {
@@ -77,6 +78,14 @@ export function render({
         update_edit_controls();
 
         $elem.find(".todo-task-list-title-bar").toggle(input_mode);
+
+        const assignee_name = task_data.get_assignee_name();
+        $elem.find(".todo-assignee").toggle(assignee_name !== undefined);
+        if (assignee_name !== undefined) {
+            $elem
+                .find(".todo-assignee")
+                .text($t({defaultMessage: "Assigned to {name}"}, {name: assignee_name}));
+        }
     }
 
     function start_editing(): void {
@@ -123,15 +132,26 @@ export function render({
     function add_task(): void {
         $elem.find(".widget-error").text("");
         const task =
-            $elem.find<HTMLInputElement>(".add-task-bar input.add-task").val()?.trim() ?? "";
+            $elem
+                .find<HTMLInputElement>(".add-task-bar input.add-task")
+                .val()
+                ?.trim()
+                .replaceAll(">>", "") ?? "";
         const desc =
-            $elem.find<HTMLInputElement>(".add-task-bar input.add-desc").val()?.trim() ?? "";
+            $elem
+                .find<HTMLInputElement>(".add-task-bar input.add-desc")
+                .val()
+                ?.trim()
+                .replaceAll(">>", "") ?? "";
+        const deadline =
+            $elem.find<HTMLInputElement>(".add-task-bar input.add-deadline").val()?.trim() ?? "";
         if (task === "") {
             return;
         }
 
         $elem.find(".add-task-bar input.add-task").val("").trigger("focus");
         $elem.find(".add-task-bar input.add-desc").val("");
+        $elem.find(".add-task-bar input.add-deadline").val("");
 
         // This case should not generally occur.
         const task_exists = task_data.name_in_use(task);
@@ -140,7 +160,7 @@ export function render({
             return;
         }
 
-        const data = task_data.handle.new_task.outbound(task, desc);
+        const data = task_data.handle.new_task.outbound(task, desc, deadline);
         if (data) {
             callback(data);
         }

@@ -572,6 +572,15 @@ def has_message_access(
     * The optional stream parameter is validated; is_subscribed is not.
     """
 
+    # Custom visibility policy: non-admin users cannot access any message
+    # (channel or direct message) that was sent before they joined the
+    # organization. Admins are exempt and can access the full history.
+    if (
+        not user_profile.is_realm_admin
+        and message.date_sent < user_profile.date_joined
+    ):
+        return False
+
     if message.recipient.type != Recipient.STREAM:
         # You can only access direct messages you received
         return has_user_message()

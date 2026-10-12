@@ -1,0 +1,48 @@
+{% extends "zerver/emails/email_base_default.html" %}
+
+{% macro task_list(tasks) %}
+<ul>
+    {% for task in tasks %}
+    <li>
+        <b>{{ task.task }}</b>{% if task.desc %}: {{ task.desc }}{% endif %}
+        ({{ task.deadline }})
+        <br/>
+        {{ _("List") }}: <a href="{{ task.url }}">{{ task.list_title }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endmacro %}
+
+{% block illustration %}
+<img src="{{ email_images_base_url }}/email_logo.png" alt=""/>
+{% endblock %}
+
+{% block content %}
+<p>{% trans %}Hello {{ full_name }},{% endtrans %}</p>
+<p>{% trans %}These are your pending tasks with a deadline in <a href="{{ realm_url }}">{{ realm_name }}</a>:{% endtrans %}</p>
+
+{% if due_today %}
+<h3>📅 {{ _("Due today") }}</h3>
+{{ task_list(due_today) }}
+{% endif %}
+
+{% if upcoming %}
+<h3>⏳ {{ _("Upcoming") }}</h3>
+{{ task_list(upcoming) }}
+{% endif %}
+
+<p>{{ _("You will get this reminder every day until each task is checked off or its deadline arrives.") }}</p>
+{% endblock %}
+root@zulip-appcheck:/home/zulip/deployments/current/templates/zerver/emails# cat todo_reminder.txt
+{% trans %}Hello {{ full_name }},{% endtrans %}
+
+{% trans %}These are your pending tasks with a deadline in {{ realm_name }} ({{ realm_url }}):{% endtrans %}
+{% for label, tasks in [(_("Due today"), due_today), (_("Upcoming"), upcoming)] %}{% if tasks %}
+
+{{ label }}:
+{% for task in tasks %}
+* {{ task.task }}{% if task.desc %}: {{ task.desc }}{% endif %} ({{ task.deadline }})
+  {{ _("List") }}: {{ task.list_title }} - {{ task.url }}
+{% endfor %}{% endif %}{% endfor %}
+
+{{ _("You will get this reminder every day until each task is checked off or its deadline arrives.") }}

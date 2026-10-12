@@ -3,8 +3,10 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from django.utils.translation import gettext as _
+
 from zerver.lib.message import SendMessageRequest
-from zerver.models import Message, SubMessage
+from zerver.models import Message, Realm, SubMessage, UserProfile
 
 
 @dataclass
@@ -17,13 +19,14 @@ class PollData:
 class TodoTaskData:
     task: str
     desc: str
-
+    deadline: str = ""
 
 @dataclass
 class TodoData:
     task_list_title: str
     tasks: list[TodoTaskData]
-
+     # {"user_id": ..., "email": ...} of the user the list is shared with, if an>
+    assignee: dict[str, Any] | None = None
 
 def get_widget_data(content: str) -> tuple[str | None, Any]:
     valid_widget_types = ["poll", "todo"]
@@ -64,12 +67,31 @@ def parse_todo_extra_data(content: str) -> TodoData:
     task_list_title = ""
     if lines and lines[0]:
         task_list_title = lines.pop(0).strip()
+    # An optional assignee follows the title, separated by "@@", as a user
+    # id or email, e.g. "/todo Title @@ 42". It is resolved against the
+    # realm in resolve_todo_assignee.
+    assignee = None
+    if "@@" in task_list_title:
+        task_list_title, assignee_ref = task_list_title.split("@@", 1)
+        task_list_title = task_list_title.strip()
+        assignee_ref = assignee_ref.strip()
+        if assignee_ref.isdigit():
+            assignee = {"user_id": int(assignee_ref)}
+        elif assignee_ref:
+            assignee = {"email": assignee_ref}
     tasks = []
     for line in lines:
-        # If someone is using the list syntax, we remove it
+         # If someone is using the list syntax, we remove it
         # before adding a task.
         task_data = re.sub(r"(\s*[-*]?\s*)", "", line.strip(), count=1)
         if len(task_data) > 0:
+            # an optional deadline is appended at the end of the line,
+            # separated by ">>", e.g. "task: desc >> 2026-09-20"
+            deadline = ""
+            if ">>" in task_data:
+                task_data, deadline = task_data.split(">>", 1)
+                task_data = task_data.strip()
+                deadline = deadline.strip()
             # a task and its description (optional) are separated
             # by the (first) `: ` substring
             task_data_array = task_data.split(": ", 1)
@@ -77,10 +99,27 @@ def parse_todo_extra_data(content: str) -> TodoData:
                 TodoTaskData(
                     task=task_data_array[0].strip(),
                     desc=task_data_array[1].strip() if len(task_data_array) > 1 else "",
+                    deadline=deadline,
                 )
             )
     return TodoData(task_list_title=task_list_title, tasks=tasks)
 
+def resolve_todo_assignee(realm: Realm, assignee: dict[str, Any]) -> dict[str, Any] | None:
+    """Returns {"user_id", "email"} for the active, human user of the realm
+    that `assignee` refers to (by "user_id", or else by "email"), or None if
+    there is no such user. The email is always taken from the database."""
+    users = UserProfile.objects.filter(realm=realm, is_active=True, is_bot=False)
+    user_id = assignee.get("user_id")
+    email = assignee.get("email")
+    if isinstance(user_id, int):
+        user = users.filter(id=user_id).first()
+    elif isinstance(email, str) and email:
+        user = users.filter(email__iexact=email).first()
+    else:
+        return None
+    if user is None:
+        return None
+    return {"user_id": user.id, "email": user.email}
 
 def get_extra_data_from_widget_type(content: str, widget_type: str | None) -> PollData | TodoData:
     if widget_type == "poll":
@@ -146,6 +185,27 @@ def get_widget_type(*, message_id: int) -> str | None:
         return data["widget_type"]
     except Exception:
         return None
+
+def check_todo_assignee_recipients(
+    content: str, realm: Realm, sender: UserProfile, dm_recipient_ids: set[int] | None
+) -> None:
+    """A to-do list with an assignee is shared only with that user: it
+    must be sent as a direct message between the sender and the assignee.
+    `dm_recipient_ids` is None for channel messages."""
+    widget_type, extra_data = get_widget_data(content)
+    if widget_type != "todo" or extra_data["assignee"] is None:
+        return
+    assignee = resolve_todo_assignee(realm, extra_data["assignee"])
+    if assignee is None:
+        raise JsonableError(_("Invalid assignee for the to-do list."))
+    if dm_recipient_ids is None or dm_recipient_ids | {sender.id} != {
+        sender.id,
+        assignee["user_id"],
+    }:
+        raise JsonableError(
+            _("A to-do list with an assignee must be a direct message to the assignee.")
+        )
+
 
 
 def is_widget_message(message: Message) -> bool:

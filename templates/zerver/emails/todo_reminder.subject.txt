@@ -1,0 +1,1 @@
+{% trans count=task_count %}You have {{ task_count }} pending task with a deadline{% pluralize %}You have {{ task_count }} pending tasks with a deadline{% endtrans %}
