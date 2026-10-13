@@ -27,6 +27,12 @@ export function is_message_sent_by_my_bot(message: Message): boolean {
 }
 
 export function get_deletability(message: Message): boolean {
+    if (message.type === "private") {
+        // Nobody can delete a direct message; see
+        // validate_can_delete_message.
+        return false;
+    }
+
     if (message.type === "stream" && stream_data.is_stream_archived_by_id(message.stream_id)) {
         return false;
     }

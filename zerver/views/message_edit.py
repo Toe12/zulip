@@ -30,7 +30,7 @@ from zerver.lib.typed_endpoint import OptionalTopic, PathOnly, typed_endpoint
 from zerver.lib.types import EditHistoryEvent, FormattedEditHistoryEvent
 from zerver.models import Message, UserProfile
 from zerver.models.realms import MessageEditHistoryVisibilityPolicyEnum
-from zerver.models.streams import Stream, get_stream_by_id_in_realm
+from zerver.models.streams import get_stream_by_id_in_realm
 
 
 def fill_edit_history_entries(
@@ -181,29 +181,31 @@ def update_message_backend(
 
 
 def validate_can_delete_message(user_profile: UserProfile, message: Message) -> None:
+    if not message.is_channel_message:
+        # A direct message is a permanent record for everyone who
+        # received it, so nobody may delete one, including its sender
+        # and organization administrators.  The permission settings
+        # and deletion time limit below therefore only concern channel
+        # messages.
+        raise JsonableError(_("Direct messages cannot be deleted"))
+
     if user_profile.can_delete_any_message():
         return
 
-    stream: Stream | None = None
-    if message.is_channel_message:
-        stream = get_stream_by_id_in_realm(message.recipient.type_id, user_profile.realm)
-        if can_delete_any_message_in_channel(user_profile, stream):
-            return
+    stream = get_stream_by_id_in_realm(message.recipient.type_id, user_profile.realm)
+    if can_delete_any_message_in_channel(user_profile, stream):
+        return
 
     if message.sender != user_profile and message.sender.bot_owner_id != user_profile.id:
         # Users can only delete messages sent by them or by their bots.
         raise JsonableError(_("You don't have permission to delete this message"))
 
-    if not user_profile.can_delete_own_message():
-        if not message.is_channel_message:
-            raise JsonableError(_("You don't have permission to delete this message"))
-
-        assert stream is not None
-        # For channel messages, users are required to have either the
-        # channel-level permission or the organization-level permission to delete
-        # their own messages.
-        if not can_delete_own_message_in_channel(user_profile, stream):
-            raise JsonableError(_("You don't have permission to delete this message"))
+    # Users are required to have either the channel-level permission or
+    # the organization-level permission to delete their own messages.
+    if not user_profile.can_delete_own_message() and not can_delete_own_message_in_channel(
+        user_profile, stream
+    ):
+        raise JsonableError(_("You don't have permission to delete this message"))
 
     deadline_seconds: int | None = user_profile.realm.message_content_delete_limit_seconds
     if deadline_seconds is None:

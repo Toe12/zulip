@@ -221,3 +221,28 @@ run_test("get_deletability", ({override}) => {
     message.sender_id = moderator.user_id;
     assert.equal(message_delete.get_deletability(message), false);
 });
+
+run_test("get_deletability_for_direct_messages", ({override}) => {
+    // Nobody can delete a direct message, however permissive the
+    // organization's settings are.
+    override(realm, "realm_can_delete_any_message_group", everyone_group.id);
+    override(realm, "realm_can_delete_own_message_group", everyone_group.id);
+    override(realm, "realm_message_content_delete_limit_seconds", null);
+    initialize_and_override_current_user(me.user_id, override);
+
+    const message = {
+        type: "private",
+        sent_by_me: true,
+        locally_echoed: false,
+        sender_id: me.user_id,
+        timestamp: Date.now() / 1000,
+    };
+    assert.equal(message_delete.get_deletability(message), false);
+
+    message.sent_by_me = false;
+    message.sender_id = moderator.user_id;
+    assert.equal(message_delete.get_deletability(message), false);
+
+    initialize_and_override_current_user(admin.user_id, override);
+    assert.equal(message_delete.get_deletability(message), false);
+});
