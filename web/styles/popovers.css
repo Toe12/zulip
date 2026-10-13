@@ -1005,7 +1005,16 @@ ul.popover-group-menu-member-list {
             text-decoration: none;
             flex-grow: 1;
 
-            &:hover {
+            &.disabled {
+                cursor: default;
+                color: var(--color-text-item) !important;
+
+                .popover-menu-icon {
+                    color: var(--color-text-item);
+                }
+            }
+
+            &:hover:not(.disabled) {
                 background: var(--color-background-hover-popover-menu);
                 outline: none;
             }
@@ -1022,7 +1031,7 @@ ul.popover-group-menu-member-list {
                 outline: none;
             }
 
-            &:active {
+            &:active:not(.disabled) {
                 background: var(--color-background-active-popover-menu);
             }
         }

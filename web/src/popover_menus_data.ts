@@ -42,6 +42,7 @@ type ActionPopoverContext = {
     should_display_quote_message: boolean;
     conversation_time_url: string;
     should_display_delete_option: boolean;
+    delete_option_disabled: boolean;
     should_display_read_receipts_option: boolean;
     should_display_add_reaction_option: boolean;
     should_display_message_report_option: boolean;
@@ -208,7 +209,9 @@ export function get_actions_popover_content_context(message_id: number): ActionP
 
     const conversation_time_url = hash_util.by_conversation_and_time_url(message);
 
-    const should_display_delete_option = message_delete.get_deletability(message);
+    const delete_option_disabled = message_delete.is_delete_disabled(message);
+    const should_display_delete_option =
+        message_delete.get_deletability(message) || delete_option_disabled;
     const should_display_read_receipts_option =
         realm.realm_enable_read_receipts && not_spectator && current_user.is_admin;
     const should_display_remind_me_option = not_spectator;
@@ -254,6 +257,7 @@ export function get_actions_popover_content_context(message_id: number): ActionP
         should_display_add_reaction_option,
         conversation_time_url,
         should_display_delete_option,
+        delete_option_disabled,
         should_display_read_receipts_option,
         should_display_quote_message,
         should_display_message_report_option: should_display_message_report_option(),

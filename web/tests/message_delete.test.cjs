@@ -246,3 +246,10 @@ run_test("get_deletability_for_direct_messages", ({override}) => {
     initialize_and_override_current_user(admin.user_id, override);
     assert.equal(message_delete.get_deletability(message), false);
 });
+
+run_test("is_delete_disabled", () => {
+    // The delete option is shown disabled for direct messages, rather
+    // than hidden, so the popover can explain why.
+    assert.equal(message_delete.is_delete_disabled({type: "private"}), true);
+    assert.equal(message_delete.is_delete_disabled({type: "stream"}), false);
+});

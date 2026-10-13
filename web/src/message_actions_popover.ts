@@ -207,7 +207,7 @@ export function initialize({
                 popover_menus.hide_current_popover_if_visible(instance);
             });
 
-            $popper.one("click", ".delete_message", (e) => {
+            $popper.one("click", ".delete_message:not(.disabled)", (e) => {
                 const message_id = Number($(e.currentTarget).attr("data-message-id"));
                 message_delete.delete_message(message_id);
                 e.preventDefault();
