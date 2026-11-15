@@ -424,7 +424,8 @@ input.text-error {
         }
     }
 
-    .portico-logo {
+    .portico-logo,
+    .brand-logo {
         height: 28px;
         width: auto;
         padding: 6px 0;

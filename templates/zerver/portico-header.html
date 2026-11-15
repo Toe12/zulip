@@ -9,15 +9,7 @@
             {% else %}
             <div class="brand logo">
                 <a href="{% if is_self_hosting_management_page %}https://zulip.com/{% else %}{{ root_domain_url }}/{% endif %}">
-                    <svg class="brand-logo" role="img" aria-label="basecomms" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" height="25">
-                        <g stroke="hsl(0, 0%, 27%)" transform="translate(0 6) scale(0.93)">
-                            <line x1="52" y1="20" x2="52" y2="116" stroke-width="12" stroke-linecap="round"/>
-                            <circle cx="88" cy="84" r="32" fill="none" stroke-width="12"/>
-                            <circle cx="88" cy="84" r="8" fill="#6366F1" stroke="none"/>
-                            <line x1="46" y1="136" x2="126" y2="136" stroke="#6366F1" stroke-width="8" stroke-linecap="round"/>
-                        </g>
-                        <text x="160" y="112" font-family="'Source Sans 3', 'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="92" fill="hsl(0, 0%, 27%)">basecomms</text>
-                    </svg>
+                    <img class="brand-logo" draggable="false" src="{{ static('images/logo/basecomms-logo.png') }}" alt="basecomms" />
                 </a>
 
                 {% if page_is_api_center %}
