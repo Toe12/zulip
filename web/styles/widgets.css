@@ -47,6 +47,31 @@
         font-weight: 400;
     }
 
+    .todo-in-progress {
+        margin-left: 4px;
+        font-size: 0.8571em;
+        font-style: italic;
+        opacity: 0.8;
+    }
+
+    .todo-start-task,
+    .todo-reset-task {
+        flex: 0 0 auto;
+        align-self: flex-start;
+        margin-left: 6px;
+        padding: 0 8px;
+        border-radius: 3px;
+        border: 1px solid hsl(156deg 28% 70%);
+        color: hsl(156deg 41% 40%);
+        background-color: var(--color-background-widget-button);
+    }
+
+    .todo-assignee {
+        opacity: 0.8;
+        font-style: italic;
+        margin-bottom: var(--markdown-interelement-space-px);
+    }
+
     & label.checkbox {
         display: flex; /* Arrange that a multi-line description line wraps properly. */
         /* Keep checkboxes vertically aligned, including with multi-line tasks. */
@@ -223,6 +248,7 @@
 
 button {
     &.add-task,
+    &.save-task,
     &.poll-option {
         color: hsl(156deg 41% 40%);
         border: 1px solid hsl(156deg 28% 70%);
@@ -266,6 +292,25 @@ input {
     &.todo-task-list-title {
         flex: 1 0 auto;
         padding: var(--input-vertical-padding) var(--input-horizontal-padding);
+    }
+}
+
+select.edit-task-select {
+    flex: 0 1 auto;
+    max-width: 100%;
+    padding: var(--input-vertical-padding) var(--input-horizontal-padding);
+}
+
+#add-todo-form .todo-assignee-picker {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    cursor: text;
+
+    .input:first-child:empty::before {
+        opacity: 0.5;
+        content: attr(data-placeholder);
     }
 }
 

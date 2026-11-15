@@ -5,9 +5,9 @@ from typing import Any
 
 from django.utils.translation import gettext as _
 
+from zerver.lib.exceptions import JsonableError
 from zerver.lib.message import SendMessageRequest
 from zerver.models import Message, Realm, SubMessage, UserProfile
-
 
 @dataclass
 class PollData:
@@ -21,12 +21,14 @@ class TodoTaskData:
     desc: str
     deadline: str = ""
 
+
 @dataclass
 class TodoData:
     task_list_title: str
     tasks: list[TodoTaskData]
-     # {"user_id": ..., "email": ...} of the user the list is shared with, if an>
+    # {"user_id": ..., "email": ...} of the user the list is shared with, if any.
     assignee: dict[str, Any] | None = None
+
 
 def get_widget_data(content: str) -> tuple[str | None, Any]:
     valid_widget_types = ["poll", "todo"]
@@ -81,7 +83,7 @@ def parse_todo_extra_data(content: str) -> TodoData:
             assignee = {"email": assignee_ref}
     tasks = []
     for line in lines:
-         # If someone is using the list syntax, we remove it
+        # If someone is using the list syntax, we remove it
         # before adding a task.
         task_data = re.sub(r"(\s*[-*]?\s*)", "", line.strip(), count=1)
         if len(task_data) > 0:
@@ -102,7 +104,8 @@ def parse_todo_extra_data(content: str) -> TodoData:
                     deadline=deadline,
                 )
             )
-    return TodoData(task_list_title=task_list_title, tasks=tasks)
+    return TodoData(task_list_title=task_list_title, tasks=tasks, assignee=assignee)
+
 
 def resolve_todo_assignee(realm: Realm, assignee: dict[str, Any]) -> dict[str, Any] | None:
     """Returns {"user_id", "email"} for the active, human user of the realm
@@ -120,6 +123,38 @@ def resolve_todo_assignee(realm: Realm, assignee: dict[str, Any]) -> dict[str, A
     if user is None:
         return None
     return {"user_id": user.id, "email": user.email}
+
+
+def check_todo_assignee_recipients(
+    content: str, realm: Realm, sender: UserProfile, dm_recipient_ids: set[int] | None
+) -> None:
+    """A to-do list with an assignee is shared only with that user: it
+    must be sent as a direct message between the sender and the assignee.
+    `dm_recipient_ids` is None for channel messages."""
+    widget_type, extra_data = get_widget_data(content)
+    if widget_type != "todo" or extra_data["assignee"] is None:
+        return
+    assignee = resolve_todo_assignee(realm, extra_data["assignee"])
+    if assignee is None:
+        raise JsonableError(_("Invalid assignee for the to-do list."))
+    if dm_recipient_ids is None or dm_recipient_ids | {sender.id} != {
+        sender.id,
+        assignee["user_id"],
+    }:
+        raise JsonableError(
+            _("A to-do list with an assignee must be a direct message to the assignee.")
+        )
+
+
+def get_todo_assignee_id(content: str, realm: Realm) -> int | None:
+    """The user a to-do list (message content `/todo ... @@ <user>`) is
+    assigned to, if any."""
+    widget_type, extra_data = get_widget_data(content)
+    if widget_type != "todo" or extra_data["assignee"] is None:
+        return None
+    assignee = resolve_todo_assignee(realm, extra_data["assignee"])
+    return assignee["user_id"] if assignee is not None else None
+
 
 def get_extra_data_from_widget_type(content: str, widget_type: str | None) -> PollData | TodoData:
     if widget_type == "poll":
@@ -141,6 +176,9 @@ def do_widget_post_save_actions(send_request: SendMessageRequest) -> None:
     extra_data = None
 
     widget_type, extra_data = get_widget_data(message_content)
+    if widget_type == "todo" and extra_data["assignee"] is not None:
+        # Already validated by check_todo_assignee_recipients.
+        extra_data["assignee"] = resolve_todo_assignee(send_request.realm, extra_data["assignee"])
     widget_content = send_request.widget_content
     if widget_content is not None:
         # Note that we validate this data in check_message,
@@ -185,27 +223,6 @@ def get_widget_type(*, message_id: int) -> str | None:
         return data["widget_type"]
     except Exception:
         return None
-
-def check_todo_assignee_recipients(
-    content: str, realm: Realm, sender: UserProfile, dm_recipient_ids: set[int] | None
-) -> None:
-    """A to-do list with an assignee is shared only with that user: it
-    must be sent as a direct message between the sender and the assignee.
-    `dm_recipient_ids` is None for channel messages."""
-    widget_type, extra_data = get_widget_data(content)
-    if widget_type != "todo" or extra_data["assignee"] is None:
-        return
-    assignee = resolve_todo_assignee(realm, extra_data["assignee"])
-    if assignee is None:
-        raise JsonableError(_("Invalid assignee for the to-do list."))
-    if dm_recipient_ids is None or dm_recipient_ids | {sender.id} != {
-        sender.id,
-        assignee["user_id"],
-    }:
-        raise JsonableError(
-            _("A to-do list with an assignee must be a direct message to the assignee.")
-        )
-
 
 
 def is_widget_message(message: Message) -> bool:

@@ -14,6 +14,7 @@ import * as message_edit from "./message_edit.ts";
 import * as message_lists from "./message_lists.ts";
 import * as message_report from "./message_report.ts";
 import type {Message} from "./message_store.ts";
+import * as message_translate from "./message_translate.ts";
 import * as message_viewport from "./message_viewport.ts";
 import * as popover_menus from "./popover_menus.ts";
 import * as popover_menus_data from "./popover_menus_data.ts";
@@ -194,6 +195,14 @@ export function initialize({
                 } else {
                     condense.collapse(message);
                 }
+                e.preventDefault();
+                e.stopPropagation();
+                popover_menus.hide_current_popover_if_visible(instance);
+            });
+
+            $popper.one("click", ".popover_translate_message", (e) => {
+                const message_id = Number($(e.currentTarget).attr("data-message-id"));
+                message_translate.toggle(message_id);
                 e.preventDefault();
                 e.stopPropagation();
                 popover_menus.hide_current_popover_if_visible(instance);

@@ -10,7 +10,7 @@ import {$t} from "./i18n.ts";
 import * as message_delete from "./message_delete.ts";
 import * as message_edit from "./message_edit.ts";
 import * as message_lists from "./message_lists.ts";
-import * as narrow_state from "./narrow_state.ts";
+import * as narrow_state from "./narrow_state.ts"; 
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
 import * as resolved_topic from "./resolved_topic.ts";

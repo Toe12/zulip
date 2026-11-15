@@ -4,7 +4,8 @@
     {% for task in tasks %}
     <li>
         <b>{{ task.task }}</b>{% if task.desc %}: {{ task.desc }}{% endif %} ({{
-        task.deadline }})
+        task.deadline }}) - {% if task.status == "in_progress" %}🔧 {{ _("In
+        progress") }}{% else %}⏳ {{ _("Not started") }}{% endif %}
         <br />
         {{ _("List") }}: <a href="{{ task.url }}">{{ task.list_title }}</a>
     </li>

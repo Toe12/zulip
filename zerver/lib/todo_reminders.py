@@ -5,6 +5,9 @@ from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from django.utils.translation import gettext as _
+
+from zerver.lib.exceptions import JsonableError
 from zerver.models import Message, Recipient, SubMessage, UserProfile
 
 # Used for users who haven't set a timezone in their Zulip settings.
@@ -17,6 +20,9 @@ class TodoTaskState:
     desc: str
     deadline: str
     completed: bool = False
+    # Set by the assignee ("start_task"); a task must be started
+    # before it can be checked off.
+    in_progress: bool = False
 
 
 @dataclass
@@ -77,10 +83,32 @@ def build_todo_list_state(
         elif event.get("type") == "strike":
             item = state.tasks.get(str(event.get("key")))
             # Once checked off, only the author of the list can uncheck a task.
+            # (That a task must be started first is only checked when the
+            # event is sent, so that tasks checked off before that rule
+            # existed stay checked off.)
             if item is not None and not (
                 item.completed and submessage.sender_id != message_sender_id
             ):
                 item.completed = not item.completed
+        elif event.get("type") == "start_task" and submessage.sender_id == state.assignee_id:
+            # Only the assignee can start a pending task.
+            item = state.tasks.get(str(event.get("key")))
+            if item is not None and not item.completed:
+                item.in_progress = True
+        elif event.get("type") == "reset_task" and submessage.sender_id == message_sender_id:
+            # Only the author of the list can take a task back to pending.
+            item = state.tasks.get(str(event.get("key")))
+            if item is not None:
+                item.completed = False
+                item.in_progress = False
+        elif event.get("type") == "edit_task" and submessage.sender_id == message_sender_id:
+            # Only the author of the list can edit a task's description and deadline.
+            item = state.tasks.get(str(event.get("key")))
+            if item is not None:
+                if isinstance(event.get("desc"), str):
+                    item.desc = event["desc"]
+                if isinstance(event.get("deadline"), str):
+                    item.deadline = event["deadline"]
         elif (
             event.get("type") == "new_task_list_title"
             # Only the author of the list can change its title.
@@ -91,17 +119,40 @@ def build_todo_list_state(
     return state
 
 
-def is_checked_task_of_assigned_list(message: Message, key: str) -> bool:
-    """Whether `key` is a checked-off task of a to-do list with an
-    assignee; only the author of such a list can uncheck it."""
+def check_assigned_todo_list_event(message: Message, sender_id: int, event: dict[str, Any]) -> None:
+    """Enforces the rules of to-do lists with an assignee on a widget
+    event, before it's saved (validate_todo_data has checked its shape):
+    no new tasks; only the author edits, unchecks or resets a task; only
+    the assignee starts one; and a task must be started to be checked off."""
     submessages = list(
         SubMessage.objects.filter(message_id=message.id, msg_type="widget").order_by("id")
     )
     state = build_todo_list_state(message.id, message.sender_id, submessages)
+    event_type = event["type"]
     if state is None:
-        return False
-    item = state.tasks.get(key)
-    return item is not None and item.completed
+        if event_type in ("edit_task", "start_task", "reset_task"):
+            raise JsonableError(_("This is only possible in a to-do list with an assignee."))
+        return
+
+    if event_type == "new_task":
+        raise JsonableError(_("Tasks can't be added to a to-do list with an assignee."))
+    if event_type not in ("strike", "edit_task", "start_task", "reset_task"):
+        return
+
+    item = state.tasks.get(event["key"])
+    if item is None:
+        raise JsonableError(_("Unknown task."))
+    is_author = sender_id == message.sender_id
+    if event_type == "strike":
+        if item.completed and not is_author:
+            raise JsonableError(_("Only the author of the to-do list can uncheck a task."))
+        if not item.completed and not item.in_progress:
+            raise JsonableError(_("A task must be started before it can be checked off."))
+    elif event_type == "start_task":
+        if sender_id != state.assignee_id:
+            raise JsonableError(_("Only the assignee can start a task."))
+        if item.completed or item.in_progress:
+            raise JsonableError(_("This task has already been started."))
 
 
 def get_assigned_todo_lists() -> list[TodoListState]:
@@ -175,6 +226,7 @@ def get_todo_reminders(
                         "task": task.task,
                         "desc": task.desc,
                         "deadline": deadline.isoformat(),
+                        "status": "in_progress" if task.in_progress else "not_started",
                         "list_title": todo_list.title,
                         "url": f"{user.realm.url}/#narrow/id/{todo_list.message_id}",
                     }
