@@ -33,6 +33,7 @@ from zerver.lib.user_groups import (
     access_user_group_for_setting,
     get_group_setting_value_for_register_api,
     get_members_and_subgroups_of_groups,
+    get_recursive_group_members,
     get_recursive_membership_groups,
     get_role_based_system_groups_dict,
     get_root_id_annotated_recursive_subgroups_for_groups,
@@ -1436,6 +1437,68 @@ def can_administer_accessible_channel(channel: Stream, user_profile: UserProfile
         user_profile,
         Stream.stream_permission_group_settings["can_administer_channel_group"],
     )
+
+
+def can_see_all_channel_messages(
+    user_profile: UserProfile,
+    channel: Stream,
+    user_group_membership_details: UserGroupMembershipDetails,
+) -> bool:
+    """Custom visibility policy: whether this user may read every message
+    in this channel, rather than only the messages they have a UserMessage
+    row for.
+
+    Organization administrators automatically administer every channel, so
+    they qualify everywhere; otherwise this is the channel's own
+    administrators, per can_administer_channel_group.
+    """
+    if user_profile.is_realm_admin:
+        return True
+
+    # can_administer_channel_group has allow_everyone_group=False, so a
+    # guest never holds this permission; checking here keeps this function
+    # in sync with can_administer_accessible_channel.
+    if user_profile.is_guest:
+        return False
+
+    if user_group_membership_details.user_recursive_group_ids is None:
+        user_group_membership_details.user_recursive_group_ids = set(
+            get_recursive_membership_groups(user_profile).values_list("id", flat=True)
+        )
+
+    return is_user_in_can_administer_channel_group(
+        channel, user_group_membership_details.user_recursive_group_ids
+    )
+
+
+def get_users_who_can_see_all_channel_messages(channel: Stream) -> set[int]:
+    """The ids of every user that can_see_all_channel_messages returns True
+    for in this channel.
+
+    Used at message-send time, where we need the whole set rather than a
+    per-user answer in order to decide who gets UserMessage rows.
+    """
+    realm_admin_ids = set(
+        UserProfile.objects.filter(
+            realm_id=channel.realm_id,
+            is_active=True,
+            role__in=(
+                UserProfile.ROLE_REALM_ADMINISTRATOR,
+                UserProfile.ROLE_REALM_OWNER,
+            ),
+        ).values_list("id", flat=True)
+    )
+
+    assert channel.can_administer_channel_group_id is not None
+    channel_admin_ids = set(
+        get_recursive_group_members(channel.can_administer_channel_group_id)
+        # can_administer_channel_group has allow_everyone_group=False, so a
+        # guest in the group does not hold the permission.
+        .exclude(role=UserProfile.ROLE_GUEST)
+        .values_list("id", flat=True)
+    )
+
+    return realm_admin_ids | channel_admin_ids
 
 
 def get_metadata_access_streams(

@@ -1,6 +1,8 @@
+import operator
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from contextlib import suppress
+from functools import reduce
 from typing import Any
 
 from django.conf import settings
@@ -36,10 +38,17 @@ from zerver.lib.mention import silent_mention_syntax_for_user
 from zerver.lib.push_notifications import add_push_device_token, validate_token
 from zerver.lib.remote_server import maybe_enqueue_audit_log_upload
 from zerver.lib.send_email import clear_scheduled_invitation_emails
-from zerver.lib.streams import can_access_stream_history
+from zerver.lib.streams import (
+    can_access_stream_history,
+    can_see_all_channel_messages,
+    get_users_who_can_see_all_channel_messages,
+)
 from zerver.lib.subscription_info import bulk_get_subscriber_peer_info
 from zerver.lib.user_counts import realm_user_count, realm_user_count_by_role
-from zerver.lib.user_groups import get_system_user_group_for_user
+from zerver.lib.user_groups import (
+    UserGroupMembershipDetails,
+    get_system_user_group_for_user,
+)
 from zerver.lib.users import (
     can_access_delivery_email,
     format_user_row,
@@ -226,38 +235,40 @@ def add_new_user_history(
     """
 
     realm = user_profile.realm
-    # Find recipient ids for the user's streams, limiting to just
-    # those where we can access the streams' full history.
+    # Find the messages in the user's channels that the custom visibility
+    # policy lets them read, limiting to just the channels where we can
+    # access the full history.  In a channel the user administers they can
+    # read everything; elsewhere they can only read what the send-time
+    # restriction in build_message_send_dict would have delivered to them.
     #
     # TODO: This will do database queries in a loop if many private
     # streams are involved.
-    recipient_ids = [
-        stream.recipient_id for stream in streams if can_access_stream_history(user_profile, stream)
-    ]
+    user_group_membership_details = UserGroupMembershipDetails(user_recursive_group_ids=None)
+    channel_history_filters = []
+    for stream in streams:
+        if not can_access_stream_history(user_profile, stream):
+            continue
+        if can_see_all_channel_messages(user_profile, stream, user_group_membership_details):
+            channel_history_filters.append(Q(recipient_id=stream.recipient_id))
+        else:
+            channel_history_filters.append(
+                Q(
+                    recipient_id=stream.recipient_id,
+                    sender_id__in=get_users_who_can_see_all_channel_messages(stream),
+                )
+            )
 
-    # Start by finding recent messages matching those recipients.
-    message_query = Message.objects.filter(
-        # Uses index: zerver_message_realm_recipient_id
-        realm_id=realm.id,
-        recipient_id__in=recipient_ids,
-    )
-
-    # Non-admin users should only see stream messages sent by admins,
-    # matching the visibility restriction applied at message-send time.
-    if not user_profile.is_realm_admin:
-        admin_sender_ids = UserProfile.objects.filter(
-            realm=realm,
-            is_active=True,
-            role__in=(
-                UserProfile.ROLE_REALM_ADMINISTRATOR,
-                UserProfile.ROLE_REALM_OWNER,
-            ),
-        ).values_list("id", flat=True)
-        message_query = message_query.filter(sender_id__in=admin_sender_ids)
-
-    recent_message_ids = set(
-        message_query.order_by("-id").values_list("id", flat=True)[0:MAX_NUM_RECENT_MESSAGES]
-    )
+    recent_message_ids: set[int] = set()
+    if channel_history_filters:
+        # Start by finding recent messages matching those recipients.
+        message_query = Message.objects.filter(
+            # Uses index: zerver_message_realm_recipient_id
+            reduce(operator.or_, channel_history_filters),
+            realm_id=realm.id,
+        )
+        recent_message_ids = set(
+            message_query.order_by("-id").values_list("id", flat=True)[0:MAX_NUM_RECENT_MESSAGES]
+        )
 
     tracked_onboarding_message_ids = set()
     message_id_to_onboarding_user_message = {}
