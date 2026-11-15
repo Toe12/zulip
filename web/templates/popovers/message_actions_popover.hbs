@@ -41,7 +41,7 @@
         {{/if}}
         {{#if should_display_delete_option}}
         <li role="none" class="link-item popover-menu-list-item">
-            <a role="menuitem" data-message-id="{{message_id}}" class="delete_message popover-menu-link" tabindex="0">
+            <a role="menuitem" data-message-id="{{message_id}}" class="delete_message popover-menu-link{{#if delete_option_disabled}} disabled tippy-zulip-tooltip{{/if}}" {{#if delete_option_disabled}}aria-disabled="true" data-tippy-content="{{t 'Direct messages cannot be deleted.' }}" data-tippy-placement="left" {{/if}}tabindex="0">
                 <i class="popover-menu-icon zulip-icon zulip-icon-trash" aria-hidden="true"></i>
                 <span class="popover-menu-label">{{t "Delete message" }}</span>
             </a>
@@ -116,6 +116,12 @@
             </a>
         </li>
         {{/if}}
+        <li role="none" class="link-item popover-menu-list-item hidden-for-spectators">
+            <a role="menuitem" data-message-id="{{message_id}}" class="popover_translate_message popover-menu-link" tabindex="0">
+                <i class="popover-menu-icon zulip-icon zulip-icon-globe" aria-hidden="true"></i>
+                <span class="popover-menu-label">{{t "Translate" }}</span>
+            </a>
+        </li>
         {{#if should_display_read_receipts_option}}
         <li role="none" class="link-item popover-menu-list-item">
             <a role="menuitem" data-message-id="{{message_id}}" class="view_read_receipts popover-menu-link" tabindex="0">

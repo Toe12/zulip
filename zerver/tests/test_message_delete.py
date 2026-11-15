@@ -12,7 +12,7 @@ from zerver.actions.streams import do_change_stream_group_based_setting, do_deac
 from zerver.actions.user_groups import check_add_user_group
 from zerver.actions.user_settings import do_change_user_setting
 from zerver.lib.test_classes import ZulipTestCase
-from zerver.models import Message, NamedUserGroup, UserMessage, UserProfile
+from zerver.models import ArchivedMessage, Message, NamedUserGroup, UserMessage, UserProfile
 from zerver.models.groups import SystemGroups
 from zerver.models.realms import get_realm
 from zerver.models.streams import get_stream
@@ -748,16 +748,20 @@ class DeleteMessageTest(ZulipTestCase):
         check_delete_message_by_other_user(
             "hamlet", "cordelia", "You don't have permission to delete this message"
         )
-        # Test deleting DMs
+        # Direct messages cannot be deleted, whatever the permissions are.
         check_delete_message_by_sender(
-            "cordelia", "You don't have permission to delete this message", is_stream_message=False
+            "cordelia", "Direct messages cannot be deleted", is_stream_message=False
         )
-        check_delete_message_by_sender("shiva", is_stream_message=False)
-        check_delete_message_by_other_user("iago", "shiva", is_stream_message=False)
+        check_delete_message_by_sender(
+            "shiva", "Direct messages cannot be deleted", is_stream_message=False
+        )
+        check_delete_message_by_other_user(
+            "iago", "shiva", "Direct messages cannot be deleted", is_stream_message=False
+        )
         check_delete_message_by_other_user(
             "hamlet",
             "cordelia",
-            "You don't have permission to delete this message",
+            "Direct messages cannot be deleted",
             is_stream_message=False,
         )
 
@@ -779,11 +783,11 @@ class DeleteMessageTest(ZulipTestCase):
         check_delete_message_by_other_user(
             "cordelia", "polonius", "You don't have permission to delete this message"
         )
-        # Test deleting DMs
+        # Direct messages cannot be deleted, whatever the permissions are.
         check_delete_message_by_other_user(
             "cordelia",
             "polonius",
-            "You don't have permission to delete this message",
+            "Direct messages cannot be deleted",
             is_stream_message=False,
         )
 
@@ -806,7 +810,7 @@ class DeleteMessageTest(ZulipTestCase):
         check_delete_message_by_other_user(
             "cordelia",
             "shiva",
-            "You don't have permission to delete this message",
+            "Direct messages cannot be deleted",
             is_stream_message=False,
         )
 
@@ -854,15 +858,15 @@ class DeleteMessageTest(ZulipTestCase):
         check_delete_message_by_other_user("cordelia", "polonius")
         check_delete_message_by_other_user("cordelia", "iago")
 
-        # Cannot delete DMs as organization-level permission is set to nobody.
+        # Direct messages cannot be deleted, whatever the permissions are.
         check_delete_message_by_other_user(
             "cordelia",
             "iago",
-            "You don't have permission to delete this message",
+            "Direct messages cannot be deleted",
             is_stream_message=False,
         )
         check_delete_message_by_sender(
-            "iago", "You don't have permission to delete this message", is_stream_message=False
+            "iago", "Direct messages cannot be deleted", is_stream_message=False
         )
 
     def test_delete_message_according_to_can_delete_own_message_group(self) -> None:
@@ -917,11 +921,13 @@ class DeleteMessageTest(ZulipTestCase):
         # Test deleting channel messages
         check_delete_message_by_sender("shiva", "You don't have permission to delete this message")
         check_delete_message_by_sender("iago")
-        # Test deleting DMs
+        # Direct messages cannot be deleted, whatever the permissions are.
         check_delete_message_by_sender(
-            "shiva", "You don't have permission to delete this message", is_stream_message=False
+            "shiva", "Direct messages cannot be deleted", is_stream_message=False
         )
-        check_delete_message_by_sender("iago", is_stream_message=False)
+        check_delete_message_by_sender(
+            "iago", "Direct messages cannot be deleted", is_stream_message=False
+        )
 
         do_change_realm_permission_group_setting(
             realm,
@@ -934,11 +940,13 @@ class DeleteMessageTest(ZulipTestCase):
             "cordelia", "You don't have permission to delete this message"
         )
         check_delete_message_by_sender("shiva")
-        # Test deleting DMs
+        # Direct messages cannot be deleted, whatever the permissions are.
         check_delete_message_by_sender(
-            "cordelia", "You don't have permission to delete this message", is_stream_message=False
+            "cordelia", "Direct messages cannot be deleted", is_stream_message=False
         )
-        check_delete_message_by_sender("shiva", is_stream_message=False)
+        check_delete_message_by_sender(
+            "shiva", "Direct messages cannot be deleted", is_stream_message=False
+        )
 
         do_change_realm_permission_group_setting(
             realm,
@@ -957,9 +965,13 @@ class DeleteMessageTest(ZulipTestCase):
         # Test deleting channel messages
         check_delete_message_by_sender("cordelia")
         check_delete_message_by_sender("polonius")
-        # Test deleting DMs
-        check_delete_message_by_sender("cordelia", is_stream_message=False)
-        check_delete_message_by_sender("polonius", is_stream_message=False)
+        # Direct messages cannot be deleted, whatever the permissions are.
+        check_delete_message_by_sender(
+            "cordelia", "Direct messages cannot be deleted", is_stream_message=False
+        )
+        check_delete_message_by_sender(
+            "polonius", "Direct messages cannot be deleted", is_stream_message=False
+        )
 
         do_change_realm_permission_group_setting(
             realm, "can_delete_own_message_group", nobody_system_group, acting_user=None
@@ -1003,10 +1015,52 @@ class DeleteMessageTest(ZulipTestCase):
         )
         check_delete_message_by_sender("iago")
 
-        # Cannot delete DMs as organization-level permission is set to nobody.
+        # Direct messages cannot be deleted, whatever the permissions are.
         check_delete_message_by_sender(
-            "iago", "You don't have permission to delete this message", is_stream_message=False
+            "iago", "Direct messages cannot be deleted", is_stream_message=False
         )
+
+    def test_direct_messages_cannot_be_deleted(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        iago = self.example_user("iago")
+        realm = get_realm("zulip")
+
+        # Grant the broadest possible deletion permissions, to confirm
+        # that they do not reach direct messages.
+        everyone_system_group = NamedUserGroup.objects.get(
+            name=SystemGroups.EVERYONE, realm_for_sharding=realm, is_system_group=True
+        )
+        do_change_realm_permission_group_setting(
+            realm, "can_delete_any_message_group", everyone_system_group, acting_user=None
+        )
+        do_change_realm_permission_group_setting(
+            realm, "can_delete_own_message_group", everyone_system_group, acting_user=None
+        )
+
+        msg_id = self.send_personal_message(hamlet, cordelia, "Hello!")
+        group_msg_id = self.send_group_direct_message(hamlet, [cordelia, iago], "Hello!")
+
+        # Neither the sender nor a recipient can delete a direct
+        # message, and being an organization administrator (iago) does
+        # not help.
+        for user in [hamlet, cordelia]:
+            self.login_user(user)
+            self.assert_json_error(
+                self.client_delete(f"/json/messages/{msg_id}"),
+                "Direct messages cannot be deleted",
+            )
+
+        for user in [hamlet, cordelia, iago]:
+            self.login_user(user)
+            self.assert_json_error(
+                self.client_delete(f"/json/messages/{group_msg_id}"),
+                "Direct messages cannot be deleted",
+            )
+
+        # Nothing was archived, because nothing was deleted.
+        self.assert_length(Message.objects.filter(id__in=[msg_id, group_msg_id]), 2)
+        self.assertFalse(ArchivedMessage.objects.filter(id__in=[msg_id, group_msg_id]).exists())
 
     def test_delete_event_sent_after_transaction_commits(self) -> None:
         """

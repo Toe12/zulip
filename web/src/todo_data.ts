@@ -24,7 +24,14 @@ export type TodoWidgetExtraData = z.infer<typeof todo_widget_extra_data_schema>;
 
 const todo_widget_inbound_data = z.intersection(
     z.object({
-        type: z.enum(["new_task", "new_task_list_title", "strike"]),
+        type: z.enum([
+            "new_task",
+            "new_task_list_title",
+            "strike",
+            "edit_task",
+            "start_task",
+            "reset_task",
+        ]),
     }),
     z.record(z.string(), z.unknown()),
 );
@@ -54,6 +61,23 @@ type TaskStrikeOutboundData = {
     key: string;
 };
 
+type TaskEditOutboundData = {
+    type: "edit_task";
+    key: string;
+    desc: string;
+    deadline: string;
+};
+
+type TaskStartOutboundData = {
+    type: "start_task";
+    key: string;
+};
+
+type TaskResetOutboundData = {
+    type: "reset_task";
+    key: string;
+};
+
 type TodoTask = {
     task: string;
     desc: string;
@@ -67,14 +91,23 @@ type Task = {
     idx: number;
     key: string;
     completed: boolean;
+    // Set by the assignee, in lists with an assignee; a task must be
+    // started before it can be checked off.
+    in_progress: boolean;
     status_icon?: string;
     locked?: boolean;
+    lock_reason?: string;
+    can_start?: boolean;
+    can_reset?: boolean;
 };
 
 export type TodoWidgetOutboundData =
     | NewTaskTitleOutboundData
     | NewTaskOutboundData
-    | TaskStrikeOutboundData;
+    | TaskStrikeOutboundData
+    | TaskEditOutboundData
+    | TaskStartOutboundData
+    | TaskResetOutboundData;
 
 export class TaskData {
     message_sender_id: number;
@@ -176,6 +209,7 @@ export class TaskData {
                     idx,
                     key,
                     completed,
+                    in_progress: false,
                 };
 
                 if (!this.name_in_use(task)) {
@@ -230,6 +264,109 @@ export class TaskData {
                 item.completed = !item.completed;
             },
         },
+
+        edit_task: {
+            outbound: (
+                key: string,
+                desc: string,
+                deadline: string,
+            ): TaskEditOutboundData | undefined => {
+                const event = {
+                    type: "edit_task" as const,
+                    key,
+                    desc,
+                    deadline,
+                };
+                if (this.is_my_task_list()) {
+                    return event;
+                }
+                return undefined;
+            },
+
+            inbound: (sender_id: number, raw_data: unknown): void => {
+                const task_edit_inbound_data_schema = z.object({
+                    type: z.literal("edit_task"),
+                    key: z.string(),
+                    desc: z.string(),
+                    deadline: z.string(),
+                });
+                const parsed = task_edit_inbound_data_schema.safeParse(raw_data);
+                if (!parsed.success) {
+                    blueslip.warn("todo widget: bad type for inbound task edit", {
+                        error: parsed.error,
+                    });
+                    return;
+                }
+                // Only the author of the list can edit a task's
+                // description and deadline (the server enforces this too).
+                if (sender_id !== this.message_sender_id) {
+                    this.report_error_function(`user ${sender_id} is not allowed to edit tasks`);
+                    return;
+                }
+                const data = parsed.data;
+                const item = this.task_map.get(data.key);
+                if (item === undefined) {
+                    blueslip.warn("todo widget: unknown key for edited task: " + data.key);
+                    return;
+                }
+
+                item.desc = data.desc;
+                item.deadline = data.deadline;
+            },
+        },
+
+        start_task: {
+            outbound: (key: string): TaskStartOutboundData | undefined => {
+                if (this.is_my_assignment()) {
+                    return {type: "start_task" as const, key};
+                }
+                return undefined;
+            },
+
+            inbound: (sender_id: number, raw_data: unknown): void => {
+                const parsed = this.parse_task_key_event("start_task", raw_data);
+                if (parsed === undefined) {
+                    return;
+                }
+                // Only the assignee can start a task (the server
+                // enforces this too).
+                if (sender_id !== this.assignee?.user_id) {
+                    this.report_error_function(`user ${sender_id} is not allowed to start tasks`);
+                    return;
+                }
+                const item = this.task_map.get(parsed.key);
+                if (item !== undefined && !item.completed) {
+                    item.in_progress = true;
+                }
+            },
+        },
+
+        reset_task: {
+            outbound: (key: string): TaskResetOutboundData | undefined => {
+                if (this.is_my_task_list()) {
+                    return {type: "reset_task" as const, key};
+                }
+                return undefined;
+            },
+
+            inbound: (sender_id: number, raw_data: unknown): void => {
+                const parsed = this.parse_task_key_event("reset_task", raw_data);
+                if (parsed === undefined) {
+                    return;
+                }
+                // Only the author of the list can take a task back to
+                // pending (the server enforces this too).
+                if (sender_id !== this.message_sender_id) {
+                    this.report_error_function(`user ${sender_id} is not allowed to reset tasks`);
+                    return;
+                }
+                const item = this.task_map.get(parsed.key);
+                if (item !== undefined) {
+                    item.completed = false;
+                    item.in_progress = false;
+                }
+            },
+        },
     };
 
     constructor({
@@ -271,6 +408,30 @@ export class TaskData {
 
     is_my_task_list(): boolean {
         return people.is_my_user_id(this.message_sender_id);
+    }
+
+    parse_task_key_event(
+        type: "start_task" | "reset_task",
+        raw_data: unknown,
+    ): {key: string} | undefined {
+        const parsed = z.object({type: z.literal(type), key: z.string()}).safeParse(raw_data);
+        if (!parsed.success) {
+            blueslip.warn(`todo widget: bad type for inbound ${type}`, {error: parsed.error});
+            return undefined;
+        }
+        return parsed.data;
+    }
+
+    is_my_assignment(): boolean {
+        return this.assignee !== undefined && people.is_my_user_id(this.assignee.user_id);
+    }
+
+    has_assignee(): boolean {
+        return this.assignee !== undefined;
+    }
+
+    get_task(key: string): Task | undefined {
+        return this.task_map.get(key);
     }
 
     is_uncheck_restricted(user_id: number): boolean {
@@ -316,10 +477,31 @@ export class TaskData {
         for (const item of all_tasks) {
             item.status_icon = item.completed
                 ? "✅"
-                : item.deadline && new Date(item.deadline).getTime() < now
-                  ? "⚠️"
-                  : "⏳";
-            item.locked = item.completed && this.is_uncheck_restricted(this.me);
+                : item.in_progress
+                  ? "🔧"
+                  : item.deadline && new Date(item.deadline).getTime() < now
+                    ? "⚠️"
+                    : "⏳";
+            const must_start = this.has_assignee() && !item.completed && !item.in_progress;
+            if (item.completed && this.is_uncheck_restricted(this.me)) {
+                item.locked = true;
+                item.lock_reason = $t({
+                    defaultMessage: "Only the author of the list can uncheck this task.",
+                });
+            } else if (must_start) {
+                item.locked = true;
+                item.lock_reason = $t({
+                    defaultMessage: "The task must be started before it can be checked off.",
+                });
+            } else {
+                item.locked = false;
+                item.lock_reason = undefined;
+            }
+            item.can_start = must_start && this.is_my_assignment();
+            item.can_reset =
+                this.has_assignee() &&
+                this.is_my_task_list() &&
+                (item.completed || item.in_progress);
         }
 
         const widget_data = {

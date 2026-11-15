@@ -1,23 +1,56 @@
 <div class="todo-widget">
     <div class="todo-widget-header-area">
-        <h4 class="todo-task-list-title-header">{{t "Task list" }}</h4>
+        <h4 class="todo-task-list-title-header">{{t "Task list"}}</h4>
         <i class="fa fa-pencil todo-edit-task-list-title"></i>
         <div class="todo-task-list-title-bar">
-            <input type="text" class="todo-task-list-title" placeholder="{{t 'Add todo task list title'}}" />
-            <button class="todo-task-list-title-remove"><i class="fa fa-remove"></i></button>
-            <button class="todo-task-list-title-check"><i class="fa fa-check"></i></button>
+            <input
+                type="text"
+                class="todo-task-list-title"
+                placeholder="{{t 'Add todo task list title'}}"
+            />
+            <button class="todo-task-list-title-remove"><i
+                    class="fa fa-remove"
+                ></i></button>
+            <button class="todo-task-list-title-check"><i
+                    class="fa fa-check"
+                ></i></button>
         </div>
     </div>
     <div class="todo-assignee"></div>
     <ul class="todo-widget">
     </ul>
-    <div class="add-task-bar">
-        <input type="text" class="add-task" placeholder="{{t 'New task'}}" />
-        <input type="text" class="add-desc" placeholder="{{t 'Description'}}" />
-        <input type="date" class="add-deadline" />
-        <div class="add-task-wrapper">
-            <button class="add-task">{{t "Add task" }}</button>
+    {{#if edit_mode}}
+        <div class="add-task-bar edit-task-bar">
+            <select class="edit-task-select">
+                <option value="">{{t "Task to edit"}}</option>
+            </select>
+            <input
+                type="text"
+                class="add-desc"
+                placeholder="{{t 'Description'}}"
+                disabled
+            />
+            <input type="date" class="add-deadline" disabled />
+            <button class="save-task" disabled>{{t "Save"}}</button>
+            <div class="widget-error"></div>
         </div>
-        <div class="widget-error"></div>
-    </div>
+    {{else if show_add_bar}}
+        <div class="add-task-bar">
+            <input
+                type="text"
+                class="add-task"
+                placeholder="{{t 'New task'}}"
+            />
+            <input
+                type="text"
+                class="add-desc"
+                placeholder="{{t 'Description'}}"
+            />
+            <input type="date" class="add-deadline" />
+            <div class="add-task-wrapper">
+                <button class="add-task">{{t "Add task"}}</button>
+            </div>
+            <div class="widget-error"></div>
+        </div>
+    {{/if}}
 </div>

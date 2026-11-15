@@ -26,7 +26,19 @@ export function is_message_sent_by_my_bot(message: Message): boolean {
     return people.is_my_user_id(user.bot_owner_id);
 }
 
+export function is_delete_disabled(message: Message): boolean {
+    // Nobody can delete a direct message; see
+    // validate_can_delete_message.  The menu item is shown disabled
+    // rather than hidden, so that people are told why instead of
+    // wondering where the option went.
+    return message.type === "private";
+}
+
 export function get_deletability(message: Message): boolean {
+    if (is_delete_disabled(message)) {
+        return false;
+    }
+
     if (message.type === "stream" && stream_data.is_stream_archived_by_id(message.stream_id)) {
         return false;
     }

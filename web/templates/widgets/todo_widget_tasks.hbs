@@ -2,7 +2,7 @@
     <li>
         <label class="checkbox">
             <span class="todo-checkbox">
-                <input type="checkbox" class="task" data-key="{{ key }}" {{#if completed}}checked{{/if}} {{#if locked}}disabled title="{{t 'Only the author of the list can uncheck this task.'}}"{{/if}}/>
+                <input type="checkbox" class="task" data-key="{{ key }}" {{#if completed}}checked{{/if}} {{#if locked}}disabled title="{{ lock_reason }}"{{/if}}/>
                 <span class="custom-checkbox"></span>
             </span>
             <span class="todo-task">
@@ -13,7 +13,10 @@
                 <strong>{{ task }}</strong>{{#if desc }}: {{ desc }}{{/if}}
                 {{/if}}
                 {{#if deadline}}<span class="todo-deadline"> ({{ deadline }})</span>{{/if}}
+                {{#if in_progress}}{{#unless completed}}<span class="todo-in-progress">{{t "in progress" }}</span>{{/unless}}{{/if}}
             </span>
+            {{#if can_start}}<button class="todo-start-task" data-key="{{ key }}">{{t "Start" }}</button>{{/if}}
+            {{#if can_reset}}<button class="todo-reset-task" data-key="{{ key }}" title="{{t 'Back to pending'}}"><i class="fa fa-undo"></i></button>{{/if}}
         </label>
     </li>
 {{/each}}

@@ -10,6 +10,7 @@ import * as blueslip from "./blueslip.ts";
 import {$t} from "./i18n.ts";
 import * as message_lists from "./message_lists.ts";
 import type {Message} from "./message_store.ts";
+import * as message_translate from "./message_translate.ts";
 import {page_params} from "./page_params.ts";
 import type {TodoWidgetOutboundData} from "./todo_data.ts";
 import {TaskData} from "./todo_data.ts";
@@ -59,6 +60,9 @@ export function render({
     assert(widget_data.widget_type === "todo");
     const task_data = widget_data.data;
     const is_my_task_list = task_data.is_my_task_list();
+    // Tasks can't be added to a list with an assignee; instead, its
+    // author can edit each task's description and deadline.
+    const edit_mode = is_my_task_list && task_data.has_assignee();
     const message_container = message_lists.current?.view.message_containers.get(message.id);
 
     function update_edit_controls(): void {
@@ -73,7 +77,10 @@ export function render({
         const can_edit = is_my_task_list && !input_mode;
 
         $elem.find(".todo-task-list-title-header").toggle(!input_mode);
-        $elem.find(".todo-task-list-title-header").text(task_list_title);
+        // Shown translated while the list is translated (message_translate.ts).
+        $elem
+            .find(".todo-task-list-title-header")
+            .text(message_translate.todo_text(message.id, task_list_title));
         $elem.find(".todo-edit-task-list-title").toggle(can_edit);
         update_edit_controls();
 
@@ -166,9 +173,91 @@ export function render({
         }
     }
 
+    function render_edit_task_select(): void {
+        const $select = $elem.find<HTMLSelectElement>("select.edit-task-select");
+        const selected_key = String($select.val() ?? "");
+        $select.find("option:not(:first-child)").remove();
+        for (const task of task_data.get_widget_data().all_tasks) {
+            $select.append($("<option>").val(task.key).text(`${task.status_icon} ${task.task}`));
+        }
+        if (task_data.get_task(selected_key) !== undefined) {
+            $select.val(selected_key);
+        } else {
+            select_task_to_edit("");
+        }
+    }
+
+    function select_task_to_edit(key: string): void {
+        $elem.find(".widget-error").text("");
+        const task = task_data.get_task(key);
+        $elem.find("select.edit-task-select").val(task === undefined ? "" : key);
+        $elem.find(".edit-task-bar input.add-desc").val(task?.desc ?? "");
+        $elem.find(".edit-task-bar input.add-deadline").val(task?.deadline ?? "");
+        $elem
+            .find(
+                ".edit-task-bar input.add-desc, .edit-task-bar input.add-deadline, button.save-task",
+            )
+            .prop("disabled", task === undefined);
+    }
+
+    function save_task(): void {
+        const key = String($elem.find<HTMLSelectElement>("select.edit-task-select").val() ?? "");
+        const task = task_data.get_task(key);
+        if (task === undefined) {
+            return;
+        }
+        const desc =
+            $elem.find<HTMLInputElement>(".edit-task-bar input.add-desc").val()?.trim() ?? "";
+        const deadline =
+            $elem.find<HTMLInputElement>(".edit-task-bar input.add-deadline").val()?.trim() ?? "";
+
+        select_task_to_edit("");
+
+        // If there were no actual edits, we can exit now.
+        if (desc === task.desc && deadline === (task.deadline ?? "")) {
+            return;
+        }
+
+        const data = task_data.handle.edit_task.outbound(key, desc, deadline);
+        if (data) {
+            callback(data);
+        }
+    }
+
+    function build_edit_task_bar(): void {
+        $elem.find(".edit-task-bar select, .edit-task-bar input").on("click", (e) => {
+            e.stopPropagation();
+        });
+
+        $elem.find("select.edit-task-select").on("change", (e) => {
+            e.stopPropagation();
+            select_task_to_edit($(e.target).val()?.toString() ?? "");
+        });
+
+        $elem.find("button.save-task").on("click", (e) => {
+            e.stopPropagation();
+            save_task();
+        });
+
+        $elem.find(".edit-task-bar input.add-desc").on("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.stopPropagation();
+                e.preventDefault();
+                save_task();
+            }
+        });
+    }
+
     function build_widget(): void {
-        const html = render_widgets_todo_widget();
+        const html = render_widgets_todo_widget({
+            edit_mode,
+            show_add_bar: !task_data.has_assignee(),
+        });
         $elem.html(html);
+
+        if (edit_mode) {
+            build_edit_task_bar();
+        }
 
         // This throttling ensures that the function runs only after the user stops typing.
         const throttled_update_add_task_button = _.throttle(update_add_task_button, 300);
@@ -251,7 +340,16 @@ export function render({
 
     function render_results(): void {
         const widget_data = task_data.get_widget_data();
-        const html = render_widgets_todo_widget_tasks(widget_data);
+        // Show task names and descriptions translated while the list is
+        // translated (message_translate.ts); keys stay the same.
+        const html = render_widgets_todo_widget_tasks({
+            ...widget_data,
+            all_tasks: widget_data.all_tasks.map((item) => ({
+                ...item,
+                task: message_translate.todo_text(message.id, item.task),
+                desc: message_translate.todo_text(message.id, item.desc),
+            })),
+        });
         $elem.find("ul.todo-widget").html(html);
         $elem.find(".widget-error").text("");
 
@@ -275,8 +373,41 @@ export function render({
             callback(data);
         });
 
-        update_add_task_button();
+        $elem.find("button.todo-start-task").on("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const key = $(e.currentTarget).attr("data-key");
+            assert(key !== undefined);
+
+            const data = task_data.handle.start_task.outbound(key);
+            if (data) {
+                callback(data);
+            }
+        });
+
+        $elem.find("button.todo-reset-task").on("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const key = $(e.currentTarget).attr("data-key");
+            assert(key !== undefined);
+
+            const data = task_data.handle.reset_task.outbound(key);
+            if (data) {
+                callback(data);
+            }
+        });
+
+        if (edit_mode) {
+            render_edit_task_select();
+        } else {
+            update_add_task_button();
+        }
     }
+
+    message_translate.register_todo_rerender(message.id, () => {
+        render_task_list_title();
+        render_results();
+    });
 
     if (message_container?.is_hidden) {
         if (!rerender) {

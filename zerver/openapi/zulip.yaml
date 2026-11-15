@@ -10490,6 +10490,11 @@ paths:
       description: |
         Permanently delete a message.
 
+        Only channel messages can be deleted. Attempting to delete a direct
+        message always returns an error, whatever permissions the requesting
+        user has, because a direct message is a permanent record for everyone
+        who received it.
+
         This API corresponds to the [delete a message completely][delete-completely]
         feature documented in the Zulip help center.
 
@@ -10519,7 +10524,12 @@ paths:
         More details about these realm and channel settings can be found in the
         [`POST /register`](/api/register-queue) response.
 
-        **Changes**: Prior to Zulip 10.0 (feature level 281), only organization
+        **Changes**: In Zulip 12.0 (feature level ZF-703b21), direct messages
+        can no longer be deleted. Previously, a user could delete a direct
+        message they sent, or any direct message they could access if they had
+        permission to delete any message.
+
+        Prior to Zulip 10.0 (feature level 281), only organization
         administrators had permission to permanently delete a message.
 
         [delete-completely]: /help/delete-a-message#delete-a-message-completely
@@ -10547,6 +10557,17 @@ paths:
                           {
                             "code": "BAD_REQUEST",
                             "msg": "You don't have permission to delete this message",
+                            "result": "error",
+                          }
+                  - allOf:
+                      - $ref: "#/components/schemas/CodedError"
+                      - description: |
+                          An example JSON response for when the specified message is a direct
+                          message, which cannot be deleted:
+                        example:
+                          {
+                            "code": "BAD_REQUEST",
+                            "msg": "Direct messages cannot be deleted",
                             "result": "error",
                           }
   /messages/{message_id}/report:

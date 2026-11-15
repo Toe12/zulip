@@ -101,7 +101,11 @@ from zerver.lib.users import (
     user_access_restricted_in_realm,
 )
 from zerver.lib.validator import check_widget_content
-from zerver.lib.widget import do_widget_post_save_actions
+from zerver.lib.widget import (
+    check_todo_assignee_recipients,
+    do_widget_post_save_actions,
+    get_todo_assignee_id,
+)
 from zerver.models import (
     Client,
     Device,
@@ -1070,7 +1074,12 @@ def do_send_messages(
             topic_participant_user_ids=send_request.topic_participant_user_ids,
         )
 
+        # A to-do list with an assignee is starred for the assignee, so it
+        # stays at hand in their starred messages.
+        todo_assignee_id = get_todo_assignee_id(send_request.message.content, send_request.realm)
         for um in user_messages:
+            if um.user_profile_id == todo_assignee_id:
+                um.flags |= UserMessage.flags.starred
             user_message_flags[send_request.message.id][um.user_profile_id] = um.flags_list()
 
         ums.extend(user_messages)
@@ -1965,6 +1974,13 @@ def check_message(
 
     # We render messages later in the process.
     assert message.rendered_content is None
+
+    check_todo_assignee_recipients(
+        message_content,
+        realm,
+        sender,
+        {user.id for user in addressee.user_profiles()} if addressee.is_private() else None,
+    )
 
     widget_content_dict = None
     if widget_content is not None:

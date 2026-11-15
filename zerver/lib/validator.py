@@ -531,12 +531,47 @@ def validate_todo_data(todo_data: object, is_widget_author: bool) -> None:
                 ("task", check_string),
                 ("desc", check_string),
                 ("completed", check_bool),
-            ]
+            ],
+            [("deadline", check_string)],
         )
         checker("todo data", todo_data)
         return
 
     if todo_data["type"] == "strike":
+        checker = check_dict_only(
+            [
+                ("type", check_string),
+                ("key", check_string),
+            ]
+        )
+        checker("todo data", todo_data)
+        return
+
+    if todo_data["type"] == "edit_task":
+        if not is_widget_author:
+            raise ValidationError("You can't edit a task unless you are the author.")
+
+        checker = check_dict_only(
+            [
+                ("type", check_string),
+                ("key", check_string),
+                ("desc", check_string),
+                ("deadline", check_string),
+            ]
+        )
+        checker("todo data", todo_data)
+        # An empty deadline removes it.
+        if todo_data["deadline"] != "":
+            try:
+                date.fromisoformat(todo_data["deadline"])
+            except ValueError:
+                raise ValidationError("Invalid deadline for the task.")
+        return
+
+    if todo_data["type"] in ("start_task", "reset_task"):
+        if todo_data["type"] == "reset_task" and not is_widget_author:
+            raise ValidationError("You can't reset a task unless you are the author.")
+
         checker = check_dict_only(
             [
                 ("type", check_string),
