@@ -1368,3 +1368,51 @@
         vertical-align: -0.1429em; /* -2px at 14px/1em */
     }
 }
+
+/* On-demand message translation (local addition, message_translate.ts). */
+.message-translation-bar {
+    display: flex;
+    margin-bottom: 0.2em;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 0.4em;
+    font-size: 0.85em;
+    line-height: 1.6;
+    color: var(--color-text-message-header);
+    opacity: 0.8;
+
+    .zulip-icon-globe {
+        font-size: 0.95em;
+    }
+
+    .message-translation-separator {
+        opacity: 0.6;
+    }
+
+    .message-translation-toggle,
+    .message-translation-close {
+        cursor: pointer;
+        color: var(--color-text-link, hsl(210deg 100% 40%));
+    }
+
+    .message-translation-close {
+        display: inline-flex;
+        margin-left: 0.2em;
+        opacity: 0.7;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .message-translation-target {
+        font-size: 0.9em;
+        padding: 0 0.2em;
+        height: auto;
+        width: auto;
+        margin: 0;
+        border-radius: 4px;
+        background-color: transparent;
+        color: inherit;
+    }
+}

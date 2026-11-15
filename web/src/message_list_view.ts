@@ -26,6 +26,7 @@ import * as message_lists from "./message_lists.ts";
 import * as message_reminder from "./message_reminder.ts";
 import * as message_store from "./message_store.ts";
 import type {Message} from "./message_store.ts";
+import * as message_translate from "./message_translate.ts";
 import * as message_viewport from "./message_viewport.ts";
 import type {MessageViewportInfo} from "./message_viewport.ts";
 import * as muted_users from "./muted_users.ts";
@@ -1078,6 +1079,9 @@ export class MessageListView {
             $row,
             message_id: id,
         });
+
+        // Re-apply an on-demand translation (local addition).
+        message_translate.restore($row, id);
     }
 
     _get_message_template(message_container: MessageContainer): string {
