@@ -1,7 +1,7 @@
 {% extends "zerver/portico.html" %}
 
 {% block title %}
-<title>{{ _("Find your accounts") }} | Zulip</title>
+<title>{{ _("Find your accounts") }} | basecomms</title>
 {% endblock %}
 
 {% block portico_content %}
@@ -9,7 +9,7 @@
 <div class="app find-account-page flex full-page">
     <div class="inline-block new-style">
         <div class="lead">
-            <h1 class="get-started">{{ _("Find your Zulip accounts") }}</h1>
+            <h1 class="get-started">{{ _("Find your basecomms accounts") }}</h1>
         </div>
 
         <div class="app-main find-account-page-container white-box">
@@ -41,7 +41,7 @@
                     {% if corporate_enabled %}
                         {% trans %}Enter your email address to receive an email with the URLs for all the Zulip Cloud organizations in which you have active accounts.{% endtrans %}
                     {% else %}
-                        {% trans %}Enter your email address to receive an email with the URLs for all the Zulip organizations on this server in which you have active accounts.{% endtrans %}
+                        {% trans %}Enter your email address to receive an email with the URLs for all the basecomms organizations on this server in which you have active accounts.{% endtrans %}
                     {% endif %}
                     {% trans %}If you have also forgotten your password, you can <a href="/help/change-your-password">reset it</a>.{% endtrans %}
                 </p>
