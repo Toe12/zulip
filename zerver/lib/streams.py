@@ -1227,6 +1227,16 @@ def can_access_stream_history_by_id(user_profile: UserProfile, stream_id: int) -
 
 
 def can_delete_any_message_in_channel(user_profile: UserProfile, stream: Stream) -> bool:
+    # A channel administrator acts as an administrator inside their own
+    # channel, so they can delete anyone's message there.  This mirrors
+    # can_move_messages_within_channel.
+    #
+    # IMPORTANT: can_administer_accessible_channel expects the caller to
+    # have checked that the user can access the channel; the only caller,
+    # validate_can_delete_message, runs after access_message.
+    if user_profile.is_realm_admin or can_administer_accessible_channel(stream, user_profile):
+        return True
+
     return user_has_permission_for_group_setting(
         stream.can_delete_any_message_group_id,
         user_profile,

@@ -222,6 +222,58 @@ run_test("get_deletability", ({override}) => {
     assert.equal(message_delete.get_deletability(message), false);
 });
 
+run_test("get_deletability_for_channel_administrators", ({override}) => {
+    // A channel administrator acts as an administrator inside their own
+    // channel, so they can delete anyone's message there.
+    override(realm, "realm_can_delete_any_message_group", nobody_group.id);
+    override(realm, "realm_can_delete_own_message_group", nobody_group.id);
+    override(realm, "realm_message_content_delete_limit_seconds", null);
+    override(current_user, "is_admin", false);
+
+    const administered = make_stream({
+        subscribed: true,
+        color: "red",
+        name: "administered",
+        stream_id: 4,
+        can_administer_channel_group: moderators_group.id,
+        can_delete_any_message_group: nobody_group.id,
+        can_delete_own_message_group: nobody_group.id,
+    });
+    const unadministered = make_stream({
+        subscribed: true,
+        color: "red",
+        name: "unadministered",
+        stream_id: 5,
+        can_administer_channel_group: nobody_group.id,
+        can_delete_any_message_group: nobody_group.id,
+        can_delete_own_message_group: nobody_group.id,
+    });
+    stream_data.add_sub_for_tests(administered);
+    stream_data.add_sub_for_tests(unadministered);
+
+    const message = {
+        locally_echoed: false,
+        type: "stream",
+        stream_id: administered.stream_id,
+        sender_id: me.user_id,
+        sent_by_me: false,
+    };
+
+    // The moderator administers this channel, so someone else's message
+    // is deletable there.
+    initialize_and_override_current_user(moderator.user_id, override);
+    assert.equal(message_delete.get_deletability(message), true);
+
+    // Administering one channel grants nothing in another.
+    message.stream_id = unadministered.stream_id;
+    assert.equal(message_delete.get_deletability(message), false);
+
+    // Someone who administers neither channel cannot delete there.
+    initialize_and_override_current_user(me.user_id, override);
+    message.stream_id = administered.stream_id;
+    assert.equal(message_delete.get_deletability(message), false);
+});
+
 run_test("get_deletability_for_direct_messages", ({override}) => {
     // Nobody can delete a direct message, however permissive the
     // organization's settings are.

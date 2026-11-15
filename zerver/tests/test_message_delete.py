@@ -649,6 +649,86 @@ class DeleteMessageTest(ZulipTestCase):
         result = self.api_delete(test_bot, f"/api/v1/messages/{msg_id}")
         self.assert_json_success(result)
 
+    def deny_all_realm_level_deletion(self, realm: Any) -> "NamedUserGroup":
+        """Strips the organization-level deletion permissions, so that a test
+        can show that a channel-level permission alone grants deletion."""
+        nobody_group = NamedUserGroup.objects.get(
+            name=SystemGroups.NOBODY, realm_for_sharding=realm, is_system_group=True
+        )
+        for setting_name in ("can_delete_any_message_group", "can_delete_own_message_group"):
+            do_change_realm_permission_group_setting(
+                realm, setting_name, nobody_group, acting_user=None
+            )
+        return nobody_group
+
+    def test_channel_administrator_can_delete_any_message_in_their_channel(self) -> None:
+        realm = get_realm("zulip")
+        channel = get_stream("Verona", realm)
+        iago = self.example_user("iago")
+        # hamlet becomes Verona's administrator; cordelia stays an
+        # ordinary member and writes the message being deleted.
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+
+        nobody_group = self.deny_all_realm_level_deletion(realm)
+        do_change_stream_group_based_setting(
+            channel, "can_delete_any_message_group", nobody_group, acting_user=iago
+        )
+
+        msg_id = self.send_stream_message(cordelia, "Verona")
+        self.login_user(hamlet)
+
+        # An ordinary member cannot delete someone else's message.
+        result = self.client_delete(f"/json/messages/{msg_id}")
+        self.assert_json_error(result, "You don't have permission to delete this message")
+        self.assertTrue(Message.objects.filter(id=msg_id).exists())
+
+        hamlet_group = check_add_user_group(
+            realm, "verona-administrators", [hamlet], acting_user=hamlet
+        )
+        do_change_stream_group_based_setting(
+            channel, "can_administer_channel_group", hamlet_group, acting_user=iago
+        )
+
+        # As Verona's administrator, he can.
+        result = self.client_delete(f"/json/messages/{msg_id}")
+        self.assert_json_success(result)
+        self.assertFalse(Message.objects.filter(id=msg_id).exists())
+
+    def test_channel_administrator_cannot_delete_in_a_channel_they_do_not_administer(
+        self,
+    ) -> None:
+        realm = get_realm("zulip")
+        iago = self.example_user("iago")
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+
+        nobody_group = self.deny_all_realm_level_deletion(realm)
+        for channel_name in ("Verona", "Denmark"):
+            do_change_stream_group_based_setting(
+                get_stream(channel_name, realm),
+                "can_delete_any_message_group",
+                nobody_group,
+                acting_user=iago,
+            )
+
+        hamlet_group = check_add_user_group(
+            realm, "verona-administrators", [hamlet], acting_user=hamlet
+        )
+        do_change_stream_group_based_setting(
+            get_stream("Verona", realm),
+            "can_administer_channel_group",
+            hamlet_group,
+            acting_user=iago,
+        )
+
+        # Administering Verona grants nothing in Denmark.
+        msg_id = self.send_stream_message(cordelia, "Denmark")
+        self.login_user(hamlet)
+        result = self.client_delete(f"/json/messages/{msg_id}")
+        self.assert_json_error(result, "You don't have permission to delete this message")
+        self.assertTrue(Message.objects.filter(id=msg_id).exists())
+
     def test_delete_message_according_to_can_delete_any_message_group(self) -> None:
         def check_delete_message_by_sender(
             sender_name: str, error_msg: str | None = None, is_stream_message: bool = True
