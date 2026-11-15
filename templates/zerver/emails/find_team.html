@@ -9,9 +9,9 @@
 <p>{{ _("Thanks for your request!") }}</p>
 
 {% if corporate_enabled %}
-<p>{% trans %}Your email address {{ email }} has accounts with the following Zulip Cloud organizations:{% endtrans %}</p>
+<p>{% trans %}Your email address {{ email }} has accounts with the following basecomms Cloud organizations:{% endtrans %}</p>
 {% else %}
-<p>{% trans %}Your email address {{ email }} has accounts with the following Zulip organizations hosted by {{ external_host }}:{% endtrans %}</p>
+<p>{% trans %}Your email address {{ email }} has accounts with the following basecomms organizations hosted by {{ external_host }}:{% endtrans %}</p>
 {% endif %}
 
 <ul>
@@ -25,11 +25,11 @@
 </p>
 {% else %}
 <p>
-    {{ _("You have requested a list of Zulip accounts for this email address.") }}
+    {{ _("You have requested a list of basecomms accounts for this email address.") }}
     {% if corporate_enabled %}
-    {{ _("Unfortunately, no Zulip Cloud accounts were found.") }}
+    {{ _("Unfortunately, no basecomms Cloud accounts were found.") }}
     {% else %}
-    {% trans%}Unfortunately, no accounts were found in Zulip organizations hosted by {{external_host}}.{% endtrans %}
+    {% trans%}Unfortunately, no accounts were found in basecomms organizations hosted by {{external_host}}.{% endtrans %}
     {% endif %}
 </p>
 
