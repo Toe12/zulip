@@ -242,18 +242,33 @@ p.n-margin {
     margin: 0 auto 0.8571em; /* 12px at 14px/em */
 
     & svg {
-        & circle {
+        /* Only the backdrop circle, which is a direct child; the mark
+           below is a group, so these rules do not reach its ring. */
+        & > circle {
             fill: var(--color-zulip-logo);
             stroke: var(--color-zulip-logo);
         }
 
-        & path {
-            fill: var(--color-zulip-logo-z);
+        /* The mark is knocked out of the circle, so it is drawn in the
+           colour sitting behind the logo. */
+        & > .messages-logo-mark {
+            fill: none;
             stroke: var(--color-zulip-logo-z);
+            stroke-width: 12;
+            stroke-linecap: round;
+
+            & .messages-logo-underline {
+                stroke-width: 8;
+            }
+
+            & .messages-logo-dot {
+                fill: var(--color-zulip-logo-z);
+                stroke: none;
+            }
         }
     }
 
-    &.loading circle {
+    &.loading > svg > circle {
         fill: var(--color-zulip-logo-loading);
         stroke: var(--color-zulip-logo-loading);
     }
