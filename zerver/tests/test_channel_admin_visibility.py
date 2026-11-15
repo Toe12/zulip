@@ -32,9 +32,18 @@ class ChannelAdminVisibilityTest(ZulipTestCase):
         self.assertFalse(self.member.is_realm_admin)
 
     def make_channel_with_admin(
-        self, channel_name: str, admin: UserProfile | None = None
+        self,
+        channel_name: str,
+        admin: UserProfile | None = None,
+        *,
+        invite_only: bool = False,
+        history_public_to_subscribers: bool | None = None,
     ) -> Stream:
-        channel = self.make_stream(channel_name)
+        channel = self.make_stream(
+            channel_name,
+            invite_only=invite_only,
+            history_public_to_subscribers=history_public_to_subscribers,
+        )
         for user in (self.sender, self.channel_admin, self.member, self.realm_admin):
             self.subscribe(user, channel_name)
         if admin is not None:
@@ -159,6 +168,57 @@ class ChannelAdminVisibilityTest(ZulipTestCase):
 
         self.assertTrue(access(self.channel_admin))
         self.assertFalse(access(self.member))
+
+    def test_member_cannot_fetch_an_undelivered_message_by_id(self) -> None:
+        self.make_channel_with_admin("claims", admin=self.channel_admin)
+        message_id = self.send_stream_message(self.sender, "claims", "secret")
+
+        # The restriction has to hold for single-message access, not only
+        # in the message list: otherwise the message is merely hidden, and
+        # can still be read by walking message ids.
+        self.assert_has_user_message(self.member, message_id, False)
+        self.login_user(self.member)
+        self.assert_json_error(
+            self.client_get(f"/json/messages/{message_id}"), "Invalid message(s)"
+        )
+
+        # The people it was delivered to are unaffected.
+        self.login_user(self.channel_admin)
+        self.assert_json_success(self.client_get(f"/json/messages/{message_id}"))
+        self.login_user(self.sender)
+        self.assert_json_success(self.client_get(f"/json/messages/{message_id}"))
+
+    def test_member_cannot_fetch_undelivered_message_with_public_history(self) -> None:
+        # A private channel whose history is public to subscribers used to
+        # grant every subscriber access to every message in it.
+        self.make_channel_with_admin(
+            "payroll",
+            admin=self.channel_admin,
+            invite_only=True,
+            history_public_to_subscribers=True,
+        )
+        message_id = self.send_stream_message(self.sender, "payroll", "secret")
+
+        self.assert_has_user_message(self.member, message_id, False)
+        self.login_user(self.member)
+        self.assert_json_error(
+            self.client_get(f"/json/messages/{message_id}"), "Invalid message(s)"
+        )
+
+        self.login_user(self.channel_admin)
+        self.assert_json_success(self.client_get(f"/json/messages/{message_id}"))
+
+    def test_member_cannot_react_to_an_undelivered_message(self) -> None:
+        # Reactions go through the same access check, so they must not be
+        # a way to confirm a message exists either.
+        self.make_channel_with_admin("claims", admin=self.channel_admin)
+        message_id = self.send_stream_message(self.sender, "claims", "secret")
+
+        self.login_user(self.member)
+        result = self.client_post(
+            f"/json/messages/{message_id}/reactions", {"emoji_name": "tada"}
+        )
+        self.assert_json_error(result, "Invalid message(s)")
 
     def test_channel_administrator_search_includes_history(self) -> None:
         self.make_channel_with_admin("claims", admin=self.channel_admin)

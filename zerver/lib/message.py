@@ -609,6 +609,17 @@ def has_message_access(
     if message.date_sent < user_profile.date_joined:
         return False
 
+    # Custom visibility policy: everyone else reads only the channel
+    # messages that were actually delivered to them.  Without this, the
+    # checks below would grant access to any message in a public channel,
+    # or in a channel whose history is public to subscribers, so a message
+    # could be fetched by id even though it is absent from the message
+    # list and from search.  This makes single-message access agree with
+    # get_base_query_for_search and bulk_access_stream_messages_query,
+    # which already require a UserMessage row for these users.
+    if not has_user_message():
+        return False
+
     if stream.is_public() and user_profile.can_access_public_streams():
         return True
 
