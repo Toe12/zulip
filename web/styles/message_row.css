@@ -1416,3 +1416,43 @@
         color: inherit;
     }
 }
+
+/* Role badge on the sender's avatar.  It lives in the wrapper rather
+   than in .inline_profile_picture, which clips with overflow: hidden. */
+.inline-profile-picture-wrapper {
+    position: relative;
+
+    .sender-admin-badge {
+        position: absolute;
+        top: -0.1875em; /* -3px at 16px/em */
+        right: -0.1875em; /* -3px at 16px/em */
+        width: 0.9375em; /* 15px at 16px/em */
+        height: 0.9375em; /* 15px at 16px/em */
+
+        /* The ring and the figure are cut out of the shield in the colour
+           of whatever sits behind the avatar, so the badge reads at this
+           size in both themes. */
+        .sender-admin-badge-shield {
+            fill: currentcolor;
+            stroke: var(--color-background-stream-message-content);
+            stroke-width: 2.5;
+            paint-order: stroke;
+        }
+
+        .sender-admin-badge-figure {
+            fill: var(--color-background-stream-message-content);
+        }
+
+        &.sender-admin-badge-owner {
+            color: hsl(38deg 92% 46%);
+        }
+
+        &.sender-admin-badge-admin {
+            color: hsl(220deg 100% 56%);
+        }
+
+        &.sender-admin-badge-channel-admin {
+            color: hsl(172deg 70% 34%);
+        }
+    }
+}

@@ -13,6 +13,7 @@ import {$t, $t_html} from "./i18n.ts";
 import {
     type MessageContainer,
     type MessageGroup,
+    get_sender_admin_badge,
     get_timestr,
     populate_group_from_message,
 } from "./message_list_view.ts";
@@ -80,6 +81,7 @@ function get_message_container_for_preview(message: Message): MessageContainer {
             message.sender_id,
         ),
         small_avatar_url: people.small_avatar_url(message),
+        sender_admin_badge: get_sender_admin_badge(message),
         status_message: "",
         timestr: get_timestr(message),
         want_date_divider: false,

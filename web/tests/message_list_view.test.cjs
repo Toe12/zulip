@@ -31,10 +31,13 @@ mock_esm("../src/people", {
 });
 
 const {Filter} = zrequire("../src/filter");
-const {MessageListView} = zrequire("../src/message_list_view");
+const {MessageListView, get_sender_admin_badge} = zrequire("../src/message_list_view");
 const message_list = zrequire("message_list");
 const {MessageListData} = zrequire("message_list_data");
 const muted_users = zrequire("muted_users");
+const people = zrequire("people");
+const stream_data = zrequire("stream_data");
+const user_groups = zrequire("user_groups");
 
 let next_timestamp = 1500000000;
 
@@ -45,6 +48,40 @@ function test(label, f) {
         f({override, mock_template});
     });
 }
+
+test("sender_admin_badge", ({override}) => {
+    const users = new Map([
+        [1, {user_id: 1, role: 100}],
+        [2, {user_id: 2, role: 200}],
+        [3, {user_id: 3, role: 400}],
+    ]);
+    override(people, "maybe_get_user_by_id", (user_id) => users.get(user_id));
+
+    // Organization owners and administrators administer every channel,
+    // so they are badged on every message, direct messages included.
+    assert.equal(get_sender_admin_badge({sender_id: 1, type: "private"}).modifier, "owner");
+    assert.equal(get_sender_admin_badge({sender_id: 2, type: "private"}).modifier, "admin");
+    assert.equal(get_sender_admin_badge({sender_id: 3, type: "private"}), undefined);
+
+    // A channel administrator holds that role only in their own channel.
+    override(stream_data, "get_sub_by_id", (stream_id) =>
+        stream_id === 7 ? {can_administer_channel_group: 55} : undefined,
+    );
+    override(
+        user_groups,
+        "is_user_in_setting_group",
+        (group_id, user_id) => group_id === 55 && user_id === 3,
+    );
+
+    assert.equal(
+        get_sender_admin_badge({sender_id: 3, type: "stream", stream_id: 7}).modifier,
+        "channel-admin",
+    );
+    assert.equal(get_sender_admin_badge({sender_id: 3, type: "stream", stream_id: 8}), undefined);
+
+    // An unknown sender is never badged.
+    assert.equal(get_sender_admin_badge({sender_id: 99, type: "private"}), undefined);
+});
 
 test("msg_edited_and_moved_vars", () => {
     // This is a test to verify that when the stream or topic is changed
