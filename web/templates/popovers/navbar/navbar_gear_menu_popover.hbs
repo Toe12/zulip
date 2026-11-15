@@ -3,9 +3,6 @@
         <div class="org-info org-name">{{realm_name}}</div>
         <div class="org-info org-url">{{realm_url}}</div>
         {{#if is_self_hosted }}
-        <div class="org-info org-version">
-            <a href="#about-zulip" class="navigate-link-on-enter popover-menu-link">{{version_display_string}}</a>
-        </div>
         {{#if server_needs_upgrade }}
         <div class="org-info org-upgrade">
             <a href="https://zulip.readthedocs.io/en/stable/production/upgrade.html" target="_blank" rel="noopener noreferrer" class="navigate-link-on-enter popover-menu-link">{{t 'Upgrade to the latest release' }}</a>

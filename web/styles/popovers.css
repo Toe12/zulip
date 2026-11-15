@@ -1244,8 +1244,7 @@ ul.popover-group-menu-member-list {
             color: var(--color-gear-menu-lighter-text);
         }
 
-        .org-upgrade a,
-        .org-version a {
+        .org-upgrade a {
             color: var(--color-gear-menu-blue-text);
         }
     }
