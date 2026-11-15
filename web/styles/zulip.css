@@ -231,12 +231,9 @@ p.n-margin {
     width: 1.7188em; /* 27.5px at 16px/1em */
 }
 
-.bottom-messages-logo {
-    display: none;
-}
-
 .top-messages-logo,
 .bottom-messages-logo {
+    display: none;
     width: 1.7143em; /* 24px at 14px/em */
     height: 1.7143em;
     margin: 0 auto 0.8571em; /* 12px at 14px/em */
