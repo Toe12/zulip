@@ -1,14 +1,21 @@
 # basecomms legal pages
 
 Static pages served by nginx on basecomms.com, outside the Django app.
-`terms.html` is the copy deployed at `https://basecomms.com/terms`.
+`terms.html` is the copy deployed at `https://basecomms.com/terms`, and
+`privacy.html` the one at `https://basecomms.com/privacy`.
 
 ## Serving
 
-`/var/www/basecomms/terms.html`, with these blocks in
-`/etc/nginx/sites-available/zulip-enterprise`, next to `/privacy`:
+`/var/www/basecomms/terms.html` and `/var/www/basecomms/privacy.html`, with
+these blocks in `/etc/nginx/sites-available/zulip-enterprise`:
 
 ```nginx
+location = /privacy {
+    auth_request off;
+    alias /var/www/basecomms/privacy.html;
+    default_type text/html;
+}
+
 location = /terms {
     auth_request off;
     alias /var/www/basecomms/terms.html;
@@ -27,7 +34,7 @@ request fails with a 500.
 
 ## Updating
 
-Edit `terms.html`, copy it to `/var/www/basecomms/terms.html` on the
-server, and change the "Last updated" date.  No nginx reload is needed
-for a content-only change.  The page links to `/privacy` and loads the
+Edit the page, copy it to `/var/www/basecomms/` on the server, and change
+its "Last updated" date.  No nginx reload is needed
+for a content-only change.  The pages link to each other and load the
 logo and favicon from `/static/images/`.
