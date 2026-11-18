@@ -14,12 +14,14 @@ location = /privacy {
     auth_request off;
     alias /var/www/basecomms/privacy.html;
     default_type text/html;
+    add_header Cache-Control "no-cache";
 }
 
 location = /terms {
     auth_request off;
     alias /var/www/basecomms/terms.html;
     default_type text/html;
+    add_header Cache-Control "no-cache";
 }
 
 location = /terms/ {
@@ -27,6 +29,9 @@ location = /terms/ {
     return 301 https://$host/terms;
 }
 ```
+
+`no-cache` makes browsers re-check the page on each visit, so an update shows
+up at once.  Without a cache header a browser may reuse an old copy for days.
 
 `/terms/` redirects instead of aliasing the file: for a location ending
 in a slash, nginx looks for an index file inside the alias, and the
