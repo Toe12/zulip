@@ -40,7 +40,6 @@ hash:  About Zulip
 link:  Desktop & mobile apps
 link:  Integrations
 link:  API documentation
-link:  Sponsor Zulip
 link:  Plans and pricing
 ---
 hash:   Invite users

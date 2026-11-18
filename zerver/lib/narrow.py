@@ -47,6 +47,7 @@ from zerver.lib.streams import (
     access_stream_common,
     can_access_stream_history_by_id,
     can_access_stream_history_by_name,
+    can_see_all_channel_messages,
     get_public_streams_queryset,
     get_stream_by_narrow_operand_access_unchecked,
     get_web_public_streams_queryset,
@@ -59,7 +60,7 @@ from zerver.lib.topic_sqlalchemy import (
     topic_match_sa,
 )
 from zerver.lib.types import Validator
-from zerver.lib.user_groups import get_recursive_membership_groups
+from zerver.lib.user_groups import UserGroupMembershipDetails, get_recursive_membership_groups
 from zerver.lib.user_topics import exclude_stream_and_topic_mutes
 from zerver.lib.validator import (
     check_bool,
@@ -862,10 +863,7 @@ def ok_to_include_history(
 
     assert user_profile is not None
 
-    # Custom visibility policy: non-admin users should only access stream
-    # messages through their UserMessage rows.
-    if not user_profile.is_realm_admin:
-        return False
+    user_group_membership_details = UserGroupMembershipDetails(user_recursive_group_ids=None)
 
     include_history = False
     if narrow is not None:
@@ -876,11 +874,27 @@ def ok_to_include_history(
                     include_history = can_access_stream_history_by_name(user_profile, operand)
                 else:
                     include_history = can_access_stream_history_by_id(user_profile, operand)
+
+                if include_history:
+                    # Custom visibility policy: only users who can read every
+                    # message in this channel may see history they have no
+                    # UserMessage row for.  The channel exists, since
+                    # otherwise include_history would be False.
+                    channel = get_stream_by_narrow_operand_access_unchecked(
+                        operand, user_profile.realm
+                    )
+                    include_history = can_see_all_channel_messages(
+                        user_profile, channel, user_group_membership_details
+                    )
             elif (
                 term.operator in channels_operators
                 and term.operand in ["public", "web-public"]
                 and not term.negated
                 and user_profile.can_access_public_streams()
+                # Custom visibility policy: a narrow spanning channels can
+                # only include history for a user who reads every channel's
+                # messages, which is an organization administrator.
+                and user_profile.is_realm_admin
             ):
                 include_history = True
         # Disable historical messages if the user is narrowing on anything
@@ -1107,12 +1121,14 @@ def get_base_query_for_search(
             or_(
                 # Include direct messages.
                 literal_column("zerver_recipient.type", Integer) != Recipient.STREAM,
-                # Admins can access any stream message they have a UserMessage
-                # row for, regardless of subscription or stream visibility.
+                # Organization administrators can access any channel message
+                # they have a UserMessage row for, regardless of subscription
+                # or channel visibility.
                 user_profile.is_realm_admin,
                 # Include messages where the recipient is a public stream and
-                # the user can access public streams, or the user is a non-guest
-                # belonging to a group granting access to the stream.
+                # the user can access public streams, the user administers the
+                # channel, or the user is a non-guest belonging to a group
+                # granting access to the stream.
                 select()
                 .select_from(table("zerver_stream"))
                 .where(
@@ -1124,6 +1140,9 @@ def get_base_query_for_search(
                         and_(
                             not_(literal_column("zerver_stream.invite_only", Boolean)),
                             user_profile.can_access_public_streams(),
+                        ),
+                        literal_column("zerver_stream.can_administer_channel_group_id").in_(
+                            user_recursive_group_ids
                         ),
                         literal_column("zerver_stream.can_subscribe_group_id").in_(
                             user_recursive_group_ids

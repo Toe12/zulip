@@ -13,3 +13,7 @@ import "../../styles/blueslip.css";
 import "../../styles/modal.css";
 import "../../styles/progress_bar.css";
 import "../../styles/pygments.css";
+
+import {open_in_app_if_mobile} from "../open_in_app.ts";
+
+open_in_app_if_mobile();

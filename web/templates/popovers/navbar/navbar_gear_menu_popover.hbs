@@ -3,9 +3,6 @@
         <div class="org-info org-name">{{realm_name}}</div>
         <div class="org-info org-url">{{realm_url}}</div>
         {{#if is_self_hosted }}
-        <div class="org-info org-version">
-            <a href="#about-zulip" class="navigate-link-on-enter popover-menu-link">{{version_display_string}}</a>
-        </div>
         {{#if server_needs_upgrade }}
         <div class="org-info org-upgrade">
             <a href="https://zulip.readthedocs.io/en/stable/production/upgrade.html" target="_blank" rel="noopener noreferrer" class="navigate-link-on-enter popover-menu-link">{{t 'Upgrade to the latest release' }}</a>
@@ -158,14 +155,6 @@
             <a role="menuitem" href="/billing/" target="_blank" rel="noopener noreferrer" class="navigate-link-on-enter popover-menu-link">
                 <i class="popover-menu-icon zulip-icon zulip-icon-credit-card" aria-hidden="true"></i>
                 <span class="popover-menu-label">{{t 'Billing' }}</span>
-            </a>
-        </li>
-        {{/if}}
-        {{#if promote_sponsoring_zulip}}
-        <li role="none" class="link-item popover-menu-list-item">
-            <a role="menuitem" href="https://zulip.com/help/support-zulip-project" target="_blank" rel="noopener noreferrer" class="navigate-link-on-enter popover-menu-link">
-                <i class="popover-menu-icon zulip-icon zulip-icon-heart" aria-hidden="true"></i>
-                <span class="popover-menu-label">{{t 'Support Zulip' }}</span>
             </a>
         </li>
         {{/if}}

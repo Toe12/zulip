@@ -16,7 +16,6 @@ function show_history_limit_notice(): void {
 }
 
 function hide_history_limit_notice(): void {
-    $(".top-messages-logo").show();
     $(".history-limited-box").hide();
 }
 

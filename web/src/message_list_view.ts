@@ -26,6 +26,7 @@ import * as message_lists from "./message_lists.ts";
 import * as message_reminder from "./message_reminder.ts";
 import * as message_store from "./message_store.ts";
 import type {Message} from "./message_store.ts";
+import * as message_translate from "./message_translate.ts";
 import * as message_viewport from "./message_viewport.ts";
 import type {MessageViewportInfo} from "./message_viewport.ts";
 import * as muted_users from "./muted_users.ts";
@@ -37,6 +38,7 @@ import * as reactions from "./reactions.ts";
 import * as rendered_markdown from "./rendered_markdown.ts";
 import * as resolved_topic from "./resolved_topic.ts";
 import * as rows from "./rows.ts";
+import * as settings_config from "./settings_config.ts";
 import * as sidebar_ui from "./sidebar_ui.ts";
 import * as stream_color from "./stream_color.ts";
 import * as stream_data from "./stream_data.ts";
@@ -47,9 +49,55 @@ import type {TopicLink} from "./types.ts";
 import * as typing_data from "./typing_data.ts";
 import * as typing_events from "./typing_events.ts";
 import * as ui_util from "./ui_util.ts";
+import * as user_groups from "./user_groups.ts";
 import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
+
+type SenderAdminBadge = {
+    modifier: string;
+    label: string;
+};
+
+// Organization owners and administrators administer every channel, so
+// their badge is shown on every message.  A channel administrator only
+// holds that role in their own channel, so theirs is shown on the
+// messages they send there.  Mirrors can_see_all_channel_messages in
+// zerver/lib/streams.py.
+export function get_sender_admin_badge(message: Message): SenderAdminBadge | undefined {
+    const sender = people.maybe_get_user_by_id(message.sender_id, true);
+    if (sender === undefined) {
+        return undefined;
+    }
+
+    if (sender.role === settings_config.user_role_values.owner.code) {
+        return {modifier: "owner", label: $t({defaultMessage: "Organization owner"})};
+    }
+
+    if (sender.role === settings_config.user_role_values.admin.code) {
+        return {
+            modifier: "admin",
+            label: $t({defaultMessage: "Organization administrator"}),
+        };
+    }
+
+    if (message.type !== "stream") {
+        return undefined;
+    }
+
+    const sub = stream_data.get_sub_by_id(message.stream_id);
+    if (
+        sub !== undefined &&
+        user_groups.is_user_in_setting_group(sub.can_administer_channel_group, message.sender_id)
+    ) {
+        return {
+            modifier: "channel-admin",
+            label: $t({defaultMessage: "Channel administrator"}),
+        };
+    }
+
+    return undefined;
+}
 
 export type MessageContainer = {
     background_color?: string;
@@ -73,6 +121,7 @@ export type MessageContainer = {
     sender_is_deactivated: boolean;
     should_add_guest_indicator_for_sender: boolean;
     small_avatar_url: string;
+    sender_admin_badge: SenderAdminBadge | undefined;
     status_message: string | false;
     stream_url?: string;
     pm_with_url?: string;
@@ -589,6 +638,7 @@ export class MessageListView {
         sender_is_guest: boolean;
         sender_is_deactivated: boolean;
         should_add_guest_indicator_for_sender: boolean;
+        sender_admin_badge: SenderAdminBadge | undefined;
         is_hidden: boolean;
         mention_classname: string | undefined;
         include_sender: boolean;
@@ -676,6 +726,7 @@ export class MessageListView {
         const small_avatar_url = is_hidden
             ? people.get_muted_user_avatar_url()
             : people.small_avatar_url(message);
+        const sender_admin_badge = get_sender_admin_badge(message);
         let background_color;
         if (message.type === "stream") {
             background_color = stream_data.get_color(message.stream_id);
@@ -686,6 +737,7 @@ export class MessageListView {
             // this is only relevant for streams, don't use it if it wasn't set
             ...(background_color && {background_color}),
             small_avatar_url,
+            sender_admin_badge,
             sender_is_bot,
             sender_is_guest,
             sender_is_deactivated,
@@ -1078,6 +1130,9 @@ export class MessageListView {
             $row,
             message_id: id,
         });
+
+        // Re-apply an on-demand translation (local addition).
+        message_translate.restore($row, id);
     }
 
     _get_message_template(message_container: MessageContainer): string {

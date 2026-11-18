@@ -1,7 +1,7 @@
 {% extends "zerver/portico_signup.html" %}
 
 {% block title %}
-<title>{{ _("Deactivated organization") }} | Zulip</title>
+<title>{{ _("Deactivated organization") }} | basecomms</title>
 {% endblock %}
 
 {% block customhead %}
@@ -42,7 +42,7 @@
                             {% endtrans %}
                         {% else %}
                             {% trans %}
-                            You can <a href="mailto:{{ support_email }}">contact this Zulip server's administrators</a> to inquire about reusing this URL for a new organization.
+                            You can <a href="mailto:{{ support_email }}">contact this basecomms server's administrators</a> to inquire about reusing this URL for a new organization.
                             {% endtrans %}
                         {% endif %}
                     {% else %}
@@ -57,7 +57,7 @@
                             {% endtrans %}
                         {% else %}
                             {% trans %}
-                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact this Zulip server's administrators</a> to reactivate it.
+                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact this basecomms server's administrators</a> to reactivate it.
                             {% endtrans %}
                         {% endif %}
                     {% endif %}

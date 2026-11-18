@@ -4,13 +4,12 @@
 import assert from "minimalistic-assert";
 
 import * as buddy_data from "./buddy_data.ts";
-import * as gear_menu_util from "./gear_menu_util.ts";
 import * as hash_util from "./hash_util.ts";
 import {$t} from "./i18n.ts";
 import * as message_delete from "./message_delete.ts";
 import * as message_edit from "./message_edit.ts";
 import * as message_lists from "./message_lists.ts";
-import * as narrow_state from "./narrow_state.ts"; 
+import * as narrow_state from "./narrow_state.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
 import * as resolved_topic from "./resolved_topic.ts";
@@ -120,13 +119,11 @@ type GearMenuContext = {
     is_education_org: boolean;
     standard_plan_name: string;
     server_needs_upgrade: boolean;
-    version_display_string: string;
     apps_page_url: string;
     can_create_multiuse_invite: boolean;
     can_invite_users_by_email: boolean;
     is_guest: boolean;
     login_link: string;
-    promote_sponsoring_zulip: boolean;
     show_billing: boolean;
     show_remote_billing: boolean;
     show_plans: boolean;
@@ -417,13 +414,11 @@ export function get_gear_menu_content_context(): GearMenuContext {
             realm.realm_org_type === settings_config.all_org_type_values.education.code,
         standard_plan_name: "Zulip Cloud Standard",
         server_needs_upgrade: realm.server_needs_upgrade,
-        version_display_string: gear_menu_util.version_display_string(),
         apps_page_url: page_params.apps_page_url,
         can_create_multiuse_invite: settings_data.user_can_create_multiuse_invite(),
         can_invite_users_by_email: settings_data.user_can_invite_users_by_email(),
         is_guest: current_user.is_guest,
         login_link: page_params.development_environment ? "/devlogin/" : "/login/",
-        promote_sponsoring_zulip: page_params.promote_sponsoring_zulip,
         show_billing: billing_info.show_billing,
         show_remote_billing: billing_info.show_remote_billing,
         show_plans: billing_info.show_plans,

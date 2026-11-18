@@ -1,15 +1,15 @@
 {% if organization_type == "business" %}
-{{ _("Zulip guide for businesses") }}
+{{ _("basecomms guide for businesses") }}
 {% elif organization_type == "opensource" %}
-{{ _("Zulip guide for open-source projects") }}
+{{ _("basecomms guide for open-source projects") }}
 {% elif organization_type == "education" %}
-{{ _("Zulip guide for education") }}
+{{ _("basecomms guide for education") }}
 {% elif organization_type == "research" %}
-{{ _("Zulip guide for research") }}
+{{ _("basecomms guide for research") }}
 {% elif organization_type == "event" %}
-{{ _("Zulip guide for events and conferences") }}
+{{ _("basecomms guide for events and conferences") }}
 {% elif organization_type == "nonprofit" %}
-{{ _("Zulip guide for non-profits") }}
+{{ _("basecomms guide for non-profits") }}
 {% elif organization_type == "community" %}
-{{ _("Zulip guide for communities") }}
+{{ _("basecomms guide for communities") }}
 {% endif %}

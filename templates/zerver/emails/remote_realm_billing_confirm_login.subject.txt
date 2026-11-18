@@ -1,1 +1,1 @@
-{% trans %}Confirm email for Zulip plan management{% endtrans %}
+{% trans %}Confirm email for basecomms plan management{% endtrans %}

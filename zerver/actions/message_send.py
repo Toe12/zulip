@@ -74,6 +74,7 @@ from zerver.lib.streams import (
     check_for_can_create_topic_group_violation,
     ensure_stream,
     get_stream_topics_policy,
+    get_users_who_can_see_all_channel_messages,
     notify_stream_is_recently_active_update,
     subscribed_to_stream,
 )
@@ -741,43 +742,34 @@ def build_message_send_dict(
     if message.recipient.type == Recipient.STREAM:
         visible_user_ids: set[int] | None = None
 
-        if not sender.is_realm_admin:
-            admins = set(
-                UserProfile.objects.filter(
-                    realm=realm,
-                    is_active=True,
-                    role__in=(
-                        UserProfile.ROLE_REALM_ADMINISTRATOR,
-                        UserProfile.ROLE_REALM_OWNER,
-                    ),
-                ).values_list("id", flat=True)
-            )
-            # Non-admin stream messages are visible only to admins and the sender.
-            visible_user_ids = admins | {sender.id}
+        # build_message_send_dict is called directly by some test code
+        # paths, which do not pass the channel.
+        channel = stream
+        if channel is None:
+            channel = Stream.objects.get(id=message.recipient.type_id)
+
+        # Organization administrators and this channel's administrators read
+        # every message in the channel, so they are always a recipient.
+        privileged_user_ids = get_users_who_can_see_all_channel_messages(channel)
+
+        if sender.id not in privileged_user_ids:
+            # Everyone else's channel messages are visible only to those
+            # users and the sender.
+            visible_user_ids = privileged_user_ids | {sender.id}
+        elif mentioned_user_ids:
+            # Privileged senders' messages with @mentions are visible to the
+            # other privileged users and the mentioned users.
+            info.um_eligible_user_ids |= mentioned_user_ids & info.active_user_ids
+            visible_user_ids = privileged_user_ids | {sender.id} | mentioned_user_ids
         else:
-            if mentioned_user_ids:
-                # Admin messages with @mentions are visible to all admins and
-                # the mentioned users.
-                admins = set(
-                    UserProfile.objects.filter(
-                        realm=realm,
-                        is_active=True,
-                        role__in=(
-                            UserProfile.ROLE_REALM_ADMINISTRATOR,
-                            UserProfile.ROLE_REALM_OWNER,
-                        ),
-                    ).values_list("id", flat=True)
-                )
-                info.um_eligible_user_ids |= mentioned_user_ids & info.active_user_ids
-                visible_user_ids = admins | {sender.id} | mentioned_user_ids
-            else:
-                topic_participants = participants_for_topic(
-                    realm.id, message.recipient.id, message.topic_name()
-                )
-                if topic_participants - {sender.id}:
-                    # Admin replies in an existing topic are visible only to users
-                    # who have already participated in that topic and the sender.
-                    visible_user_ids = topic_participants | {sender.id}
+            topic_participants = participants_for_topic(
+                realm.id, message.recipient.id, message.topic_name()
+            )
+            if topic_participants - {sender.id}:
+                # Privileged senders' replies in an existing topic are visible
+                # only to users who have already participated in that topic,
+                # the sender, and the other privileged users.
+                visible_user_ids = topic_participants | {sender.id} | privileged_user_ids
 
         if visible_user_ids is not None:
 

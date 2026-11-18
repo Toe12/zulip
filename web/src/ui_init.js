@@ -76,6 +76,7 @@ import * as message_list_tooltips from "./message_list_tooltips.ts";
 import * as message_lists from "./message_lists.ts";
 import * as message_reminder from "./message_reminder.ts";
 import * as message_scroll from "./message_scroll.ts";
+import * as message_translate from "./message_translate.ts";
 import * as message_view from "./message_view.ts";
 import * as message_view_header from "./message_view_header.ts";
 import * as message_viewport from "./message_viewport.ts";
@@ -475,6 +476,7 @@ export async function initialize_everything(state_data) {
     tippyjs.initialize();
     compose_tooltips.initialize();
     message_list_tooltips.initialize();
+    message_translate.initialize();
     left_sidebar_tooltips.initialize();
     // This populates data for scheduled messages.
     scheduled_messages.initialize(state_data.scheduled_messages);

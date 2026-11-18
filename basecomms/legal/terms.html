@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="The terms that apply when you use BaseComms, the workplace messaging app operated by Polaris Logistics.">
+<title>Terms of Service - BaseComms</title>
+<link rel="icon" href="/static/images/favicon.svg?v=4">
+<style>
+:root {
+  --bg: #f6f7fb; --surface: #ffffff; --ink: #131a29; --muted: #5a6478; --line: #e3e6ef;
+  --brand: #4a4cd8; --brand-strong: #3a3bb8; --brand-soft: #eef0ff; --logo-invert: 0;
+  --shadow: 0 1px 2px rgba(19,26,41,.05), 0 8px 24px rgba(19,26,41,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1220; --surface: #161b2c; --ink: #e8ebf4; --muted: #9aa3b8; --line: #272e45;
+    --brand: #8d8ff7; --brand-strong: #b0b2ff; --brand-soft: #212654; --logo-invert: 1;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--brand); text-underline-offset: 3px; }
+a:hover { color: var(--brand-strong); }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--brand); color: #fff; padding: 8px 14px; border-radius: 6px; z-index: 20; }
+.skip:focus { left: 8px; color: #fff; }
+
+.topbar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand img { height: 30px; width: auto; display: block; filter: invert(var(--logo-invert)) hue-rotate(calc(var(--logo-invert) * 180deg)); }
+.topnav { display: flex; gap: 22px; font-size: 15px; }
+.topnav a { color: var(--muted); text-decoration: none; font-weight: 500; }
+.topnav a:hover, .topnav a[aria-current] { color: var(--brand); }
+
+.hero { max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px; }
+.eyebrow { display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); background: var(--brand-soft); padding: 5px 12px; border-radius: 999px; }
+.hero h1 { margin: 18px 0 12px; font-size: clamp(34px, 5vw, 52px); line-height: 1.1; letter-spacing: -.02em; }
+.hero p { margin: 0; max-width: 62ch; color: var(--muted); font-size: 19px; }
+.meta { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 14.5px; color: var(--muted); }
+.meta strong { color: var(--ink); font-weight: 600; }
+
+.layout { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 48px; align-items: start; }
+.toc { position: sticky; top: 88px; max-height: calc(100vh - 112px); overflow: auto; padding-right: 6px; }
+.toc h2 { margin: 0 0 10px; font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.toc ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+.toc a { display: flex; gap: 10px; padding: 6px 12px; margin-left: -2px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 14.5px; line-height: 1.4; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--brand); border-left-color: var(--brand); font-weight: 600; background: linear-gradient(90deg, var(--brand-soft), transparent); }
+.toc .num { min-width: 1.4em; font-variant-numeric: tabular-nums; opacity: .7; }
+.toc-mobile { display: none; }
+
+article { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 12px 48px 24px; }
+section { padding: 32px 0; border-bottom: 1px solid var(--line); }
+section:last-of-type { border-bottom: 0; }
+section h2 { margin: 0 0 14px; font-size: 24px; line-height: 1.3; letter-spacing: -.01em; display: flex; align-items: baseline; gap: 14px; }
+section h2 .num { flex: none; display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); font-size: 15px; font-weight: 700; transform: translateY(-2px); }
+.anchor { color: inherit; text-decoration: none; }
+.hash { margin-left: 8px; color: var(--brand); opacity: 0; transition: opacity .15s; font-weight: 400; }
+.anchor:hover .hash, .anchor:focus-visible .hash { opacity: .8; }
+section p { margin: 0 0 14px; max-width: 68ch; }
+section ul { margin: 0 0 14px; padding: 0; list-style: none; max-width: 68ch; }
+section li { position: relative; padding-left: 26px; margin-bottom: 9px; }
+section li::before { content: ""; position: absolute; left: 6px; top: .72em; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+section > :last-child { margin-bottom: 0; }
+
+.contact { background: var(--brand-soft); border-radius: 12px; padding: 22px 26px; max-width: 460px; }
+.contact p { margin: 0; line-height: 1.8; }
+.contact .org { font-weight: 700; font-size: 19px; margin-bottom: 4px; }
+
+.pagefoot { max-width: 1120px; margin: 0 auto; padding: 0 24px 48px; display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; color: var(--muted); font-size: 14.5px; }
+.pagefoot a { color: var(--muted); }
+.pagefoot a:hover { color: var(--brand); }
+
+@media (max-width: 920px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-top: 24px; }
+  .toc { display: none; }
+  .toc-mobile { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  .toc-mobile summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+  .toc-mobile summary::after { content: "+"; color: var(--brand); font-size: 20px; line-height: 1; }
+  .toc-mobile[open] summary::after { content: "\2212"; }
+  .toc-mobile summary::-webkit-details-marker { display: none; }
+  .toc-mobile ol { list-style: none; margin: 0; padding: 0 8px 10px; }
+  .toc-mobile a { display: flex; gap: 10px; padding: 9px 12px; color: var(--ink); text-decoration: none; border-radius: 8px; font-size: 15.5px; }
+  .toc-mobile a:hover { background: var(--brand-soft); }
+  .toc-mobile .num { min-width: 1.6em; color: var(--brand); font-weight: 600; }
+  article { padding: 4px 22px 16px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16.5px; }
+  .topbar-inner, .hero, .layout, .pagefoot { padding-left: 16px; padding-right: 16px; }
+  .topnav a.hide-sm { display: none; }
+  .hero { padding-top: 36px; }
+  .hero p { font-size: 17px; }
+  section h2 { font-size: 21px; gap: 12px; }
+}
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .topbar, .toc, .toc-mobile, .skip, .hash { display: none !important; }
+  .layout { display: block; padding: 0; }
+  article { border: 0; box-shadow: none; padding: 0; }
+  section { break-inside: avoid-page; }
+  a { color: #000; }
+}
+</style>
+</head>
+<body id="top">
+<a class="skip" href="#terms">Skip to the terms</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/" aria-label="BaseComms home"><img src="/static/images/logo/basecomms-logo.png" alt="basecomms" width="140" height="30"></a>
+    <nav class="topnav" aria-label="Legal">
+      <a href="/terms" aria-current="page">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a class="hide-sm" href="/login/">Log in</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <span class="eyebrow">Legal</span>
+  <h1>Terms of Service</h1>
+  <p>The rules for using BaseComms, the workplace messaging app from Polaris Logistics.</p>
+  <div class="meta">
+    <span>Last updated <strong>November 18, 2026</strong></span>
+    <span>Operated by <strong>Polaris Logistics</strong></span>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+<li><a href="#acceptance-of-terms"><span class="num">1</span><span>Acceptance of Terms</span></a></li>
+<li><a href="#the-service"><span class="num">2</span><span>The Service</span></a></li>
+<li><a href="#eligibility"><span class="num">3</span><span>Eligibility</span></a></li>
+<li><a href="#accounts"><span class="num">4</span><span>Accounts</span></a></li>
+<li><a href="#acceptable-use"><span class="num">5</span><span>Acceptable Use</span></a></li>
+<li><a href="#your-content"><span class="num">6</span><span>Your Content</span></a></li>
+<li><a href="#company-use-and-monitoring"><span class="num">7</span><span>Company Use and Monitoring</span></a></li>
+<li><a href="#privacy"><span class="num">8</span><span>Privacy</span></a></li>
+<li><a href="#our-intellectual-property"><span class="num">9</span><span>Our Intellectual Property</span></a></li>
+<li><a href="#open-source-software"><span class="num">10</span><span>Open-Source Software</span></a></li>
+<li><a href="#third-party-services"><span class="num">11</span><span>Third-Party Services</span></a></li>
+<li><a href="#availability-and-changes-to-the-service"><span class="num">12</span><span>Availability and Changes to the Service</span></a></li>
+<li><a href="#suspension-and-termination"><span class="num">13</span><span>Suspension and Termination</span></a></li>
+<li><a href="#disclaimers"><span class="num">14</span><span>Disclaimers</span></a></li>
+<li><a href="#limitation-of-liability"><span class="num">15</span><span>Limitation of Liability</span></a></li>
+<li><a href="#indemnification"><span class="num">16</span><span>Indemnification</span></a></li>
+<li><a href="#governing-law-and-disputes"><span class="num">17</span><span>Governing Law and Disputes</span></a></li>
+<li><a href="#changes-to-these-terms"><span class="num">18</span><span>Changes to These Terms</span></a></li>
+<li><a href="#apple-app-store-terms"><span class="num">19</span><span>Apple App Store Terms</span></a></li>
+<li><a href="#general"><span class="num">20</span><span>General</span></a></li>
+<li><a href="#contact-information"><span class="num">21</span><span>Contact Information</span></a></li>
+    </ol>
+  </nav>
+  <details class="toc-mobile">
+    <summary>Contents</summary>
+    <ol>
+<li><a href="#acceptance-of-terms"><span class="num">1</span><span>Acceptance of Terms</span></a></li>
+<li><a href="#the-service"><span class="num">2</span><span>The Service</span></a></li>
+<li><a href="#eligibility"><span class="num">3</span><span>Eligibility</span></a></li>
+<li><a href="#accounts"><span class="num">4</span><span>Accounts</span></a></li>
+<li><a href="#acceptable-use"><span class="num">5</span><span>Acceptable Use</span></a></li>
+<li><a href="#your-content"><span class="num">6</span><span>Your Content</span></a></li>
+<li><a href="#company-use-and-monitoring"><span class="num">7</span><span>Company Use and Monitoring</span></a></li>
+<li><a href="#privacy"><span class="num">8</span><span>Privacy</span></a></li>
+<li><a href="#our-intellectual-property"><span class="num">9</span><span>Our Intellectual Property</span></a></li>
+<li><a href="#open-source-software"><span class="num">10</span><span>Open-Source Software</span></a></li>
+<li><a href="#third-party-services"><span class="num">11</span><span>Third-Party Services</span></a></li>
+<li><a href="#availability-and-changes-to-the-service"><span class="num">12</span><span>Availability and Changes to the Service</span></a></li>
+<li><a href="#suspension-and-termination"><span class="num">13</span><span>Suspension and Termination</span></a></li>
+<li><a href="#disclaimers"><span class="num">14</span><span>Disclaimers</span></a></li>
+<li><a href="#limitation-of-liability"><span class="num">15</span><span>Limitation of Liability</span></a></li>
+<li><a href="#indemnification"><span class="num">16</span><span>Indemnification</span></a></li>
+<li><a href="#governing-law-and-disputes"><span class="num">17</span><span>Governing Law and Disputes</span></a></li>
+<li><a href="#changes-to-these-terms"><span class="num">18</span><span>Changes to These Terms</span></a></li>
+<li><a href="#apple-app-store-terms"><span class="num">19</span><span>Apple App Store Terms</span></a></li>
+<li><a href="#general"><span class="num">20</span><span>General</span></a></li>
+<li><a href="#contact-information"><span class="num">21</span><span>Contact Information</span></a></li>
+    </ol>
+  </details>
+  <article id="terms">
+<section id="acceptance-of-terms" aria-labelledby="h-acceptance-of-terms">
+<h2 id="h-acceptance-of-terms"><span class="num" aria-hidden="true">1</span><a class="anchor" href="#acceptance-of-terms">Acceptance of Terms<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>These Terms of Service ("Terms") govern your use of <strong>BaseComms</strong> (the "Application"), including its mobile apps and web interface, operated by <strong>Polaris Logistics</strong> ("we", "us").</p>
+				<p>By creating an account, signing in, or using the Application, you agree to these Terms. If you do not agree, do not use the Application.</p>
+</section>
+<section id="the-service" aria-labelledby="h-the-service">
+<h2 id="h-the-service"><span class="num" aria-hidden="true">2</span><a class="anchor" href="#the-service">The Service<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>BaseComms is a communication and collaboration application based on the open-source Zulip platform. It lets members of an organization exchange messages, files, and other content in channels, topics, and direct messages.</p>
+				<p>Access is provided to people who have been invited or authorized by the organization that operates the service.</p>
+</section>
+<section id="eligibility" aria-labelledby="h-eligibility">
+<h2 id="h-eligibility"><span class="num" aria-hidden="true">3</span><a class="anchor" href="#eligibility">Eligibility<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>The Application is for employees, contractors, and other people who have been invited or authorized by Polaris Logistics or an organization that uses BaseComms.</p>
+				<p>You must be at least 18 years old to use the Application. By using it, you confirm that you meet this requirement and that you are allowed to use it under the policies of your organization.</p>
+</section>
+<section id="accounts" aria-labelledby="h-accounts">
+<h2 id="h-accounts"><span class="num" aria-hidden="true">4</span><a class="anchor" href="#accounts">Accounts<span class="hash" aria-hidden="true">#</span></a></h2>
+<ul>
+<li>You must provide accurate information and keep it up to date.</li>
+					<li>You are responsible for keeping your login credentials confidential and for activity under your account.</li>
+					<li>Tell us promptly if you believe your account has been used without your permission.</li>
+					<li>You may not share your account or let others use it.</li>
+					<li>You can ask us to delete your account by contacting us as described in <a href="#contact-information">Section 21</a>.</li>
+				</ul>
+</section>
+<section id="acceptable-use" aria-labelledby="h-acceptable-use">
+<h2 id="h-acceptable-use"><span class="num" aria-hidden="true">5</span><a class="anchor" href="#acceptable-use">Acceptable Use<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>You agree not to use the Application to:</p>
+				<ul>
+<li>Break any applicable law, or infringe the rights of others.</li>
+					<li>Harass, threaten, or abuse other users, or post unlawful, hateful, or deceptive content.</li>
+					<li>Send spam, malware, or any content intended to disrupt or damage the service or other users.</li>
+					<li>Attempt to gain unauthorized access to the service, other accounts, or our systems.</li>
+					<li>Probe, scan, or test the vulnerability of the service, or interfere with its operation, except as part of authorized security research that we have agreed to in writing.</li>
+					<li>Reverse engineer or misuse the service in a way that goes beyond what applicable law and the open-source licenses of its components allow.</li>
+				</ul>
+</section>
+<section id="your-content" aria-labelledby="h-your-content">
+<h2 id="h-your-content"><span class="num" aria-hidden="true">6</span><a class="anchor" href="#your-content">Your Content<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>"Your Content" means the messages, files, and other content you post in the Application.</p>
+				<p>You keep ownership of Your Content. You give us and the organization that operates the service the right to store, process, display, transmit, keep, and export Your Content as needed to run the Application and to meet business, legal, and record-keeping needs.</p>
+				<p>You are responsible for Your Content and for having the right to share it. Other members of your organization may be able to see content you post in channels and conversations they can access.</p>
+				<p>We may remove content, or restrict access to it, if it breaks these Terms or the law.</p>
+</section>
+<section id="company-use-and-monitoring" aria-labelledby="h-company-use-and-monitoring">
+<h2 id="h-company-use-and-monitoring"><span class="num" aria-hidden="true">7</span><a class="anchor" href="#company-use-and-monitoring">Company Use and Monitoring<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>BaseComms is a workplace tool. Your use of the Application is also subject to your organization's own policies, such as its employee handbook and IT acceptable use policies. If those policies conflict with these Terms, your organization's policies apply to your work use.</p>
+				<p>Authorized administrators may access, review, keep, export, or delete messages and files in the Application. This includes direct messages and private channels. They may do this for business, security, legal, or compliance reasons. You should not expect your content in the Application to be private from your organization.</p>
+				<p>Content may be kept after you leave the organization, or after you delete it, when this is needed for legal or business reasons.</p>
+</section>
+<section id="privacy" aria-labelledby="h-privacy">
+<h2 id="h-privacy"><span class="num" aria-hidden="true">8</span><a class="anchor" href="#privacy">Privacy<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>How we collect and use information is described in our <a href="/privacy">Privacy Policy</a>, which forms part of these Terms.</p>
+</section>
+<section id="our-intellectual-property" aria-labelledby="h-our-intellectual-property">
+<h2 id="h-our-intellectual-property"><span class="num" aria-hidden="true">9</span><a class="anchor" href="#our-intellectual-property">Our Intellectual Property<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>The BaseComms and Polaris Logistics names, logos, and branding, and any parts of the Application that we created ourselves, belong to Polaris Logistics. You may not use them without our written permission.</p>
+				<p>These Terms do not give you any rights in our trademarks or branding. Your rights in open-source components are covered in <a href="#open-source-software">Section 10</a>.</p>
+				<p>If you send us ideas or feedback about the Application, we may use them without any obligation to you.</p>
+</section>
+<section id="open-source-software" aria-labelledby="h-open-source-software">
+<h2 id="h-open-source-software"><span class="num" aria-hidden="true">10</span><a class="anchor" href="#open-source-software">Open-Source Software<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>The Application is based on Zulip, open-source team chat licensed under the Apache License 2.0, and on other open-source software, which are provided under their own licenses. Nothing in these Terms limits your rights under those licenses. Information about Zulip is available at <a href="https://zulip.com">zulip.com</a>.</p>
+				<p>Zulip is a trademark of Kandra Labs, Inc., and is used here only to identify the software BaseComms is based on. BaseComms is not affiliated with or endorsed by Zulip or Kandra Labs.</p>
+</section>
+<section id="third-party-services" aria-labelledby="h-third-party-services">
+<h2 id="h-third-party-services"><span class="num" aria-hidden="true">11</span><a class="anchor" href="#third-party-services">Third-Party Services<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>The Application uses some third-party services to work. For example:</p>
+				<ul>
+<li><strong>Push notifications:</strong> mobile notifications are sent through Apple Push Notification service and Google Firebase Cloud Messaging.</li>
+					<li><strong>Hosting and delivery:</strong> Oracle Cloud Infrastructure hosts the service, and Cloudflare helps deliver and protect it.</li>
+					<li><strong>Email:</strong> SMTP2GO sends email from the service, such as reminders and account messages.</li>
+				</ul>
+				<p>These services have their own terms and privacy policies. We are not responsible for the services or websites of third parties, including links that users share in the Application.</p>
+</section>
+<section id="availability-and-changes-to-the-service" aria-labelledby="h-availability-and-changes-to-the-service">
+<h2 id="h-availability-and-changes-to-the-service"><span class="num" aria-hidden="true">12</span><a class="anchor" href="#availability-and-changes-to-the-service">Availability and Changes to the Service<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>We aim to keep the Application available and reliable, but we do not guarantee uninterrupted or error-free operation. We may change, suspend, or discontinue features, with or without notice, for maintenance, security, or other reasons.</p>
+</section>
+<section id="suspension-and-termination" aria-labelledby="h-suspension-and-termination">
+<h2 id="h-suspension-and-termination"><span class="num" aria-hidden="true">13</span><a class="anchor" href="#suspension-and-termination">Suspension and Termination<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>You may stop using the Application at any time. You can ask us to delete your account by contacting us.</p>
+				<p>We may suspend or end your access in these cases:</p>
+				<ul>
+<li>you break these Terms</li>
+					<li>your access is no longer authorized by your organization, for example because your job or contract has ended</li>
+					<li>it is needed to protect the service or other users.</li>
+				</ul>
+				<p>When your account ends, your right to use the Application ends too. Content you posted may stay in the organization's records, as described in <a href="#company-use-and-monitoring">Section 7</a>. These sections continue to apply after your account ends: Your Content, Company Use and Monitoring, Our Intellectual Property, Disclaimers, Limitation of Liability, Indemnification, Governing Law and Disputes, and General.</p>
+</section>
+<section id="disclaimers" aria-labelledby="h-disclaimers">
+<h2 id="h-disclaimers"><span class="num" aria-hidden="true">14</span><a class="anchor" href="#disclaimers">Disclaimers<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>The Application is provided "as is" and "as available", without warranties of any kind, whether express or implied, including warranties of merchantability, fitness for a particular purpose, and non-infringement, to the extent permitted by law.</p>
+</section>
+<section id="limitation-of-liability" aria-labelledby="h-limitation-of-liability">
+<h2 id="h-limitation-of-liability"><span class="num" aria-hidden="true">15</span><a class="anchor" href="#limitation-of-liability">Limitation of Liability<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>To the extent permitted by law, Polaris Logistics is not liable for any indirect, incidental, special, consequential, or punitive damages, or for loss of data, profits, or business, arising from your use of, or inability to use, the Application.</p>
+				<p>Nothing in these Terms limits liability that cannot be limited under applicable law.</p>
+</section>
+<section id="indemnification" aria-labelledby="h-indemnification">
+<h2 id="h-indemnification"><span class="num" aria-hidden="true">16</span><a class="anchor" href="#indemnification">Indemnification<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>To the extent permitted by law, you agree to defend and hold harmless Polaris Logistics and its employees and agents from claims, losses, and costs (including reasonable legal fees) that come from:</p>
+				<ul>
+<li>your breach of these Terms</li>
+					<li>Your Content</li>
+					<li>your misuse of the Application.</li>
+				</ul>
+</section>
+<section id="governing-law-and-disputes" aria-labelledby="h-governing-law-and-disputes">
+<h2 id="h-governing-law-and-disputes"><span class="num" aria-hidden="true">17</span><a class="anchor" href="#governing-law-and-disputes">Governing Law and Disputes<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>These Terms are governed by the laws of the State of Nebraska and the United States. Conflict-of-law rules do not apply.</p>
+				<p>Any dispute about these Terms or the Application will be handled in the state or federal courts located in Sarpy County, Nebraska, and you agree to the jurisdiction of those courts.</p>
+				<p>Before starting any legal action, please contact us first so we can try to resolve the issue informally.</p>
+</section>
+<section id="changes-to-these-terms" aria-labelledby="h-changes-to-these-terms">
+<h2 id="h-changes-to-these-terms"><span class="num" aria-hidden="true">18</span><a class="anchor" href="#changes-to-these-terms">Changes to These Terms<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>We may update these Terms from time to time. We will publish changes on this page and update the "Last updated" date.</p>
+				<p>If a change is important, we will also tell you in the Application or by email before it takes effect. We may ask you to accept the new Terms before you can keep using the Application. If you keep using the Application after a change takes effect, you accept the updated Terms.</p>
+</section>
+<section id="apple-app-store-terms" aria-labelledby="h-apple-app-store-terms">
+<h2 id="h-apple-app-store-terms"><span class="num" aria-hidden="true">19</span><a class="anchor" href="#apple-app-store-terms">Apple App Store Terms<span class="hash" aria-hidden="true">#</span></a></h2>
+<p>If you downloaded the Application from the Apple App Store:</p>
+				<ul>
+<li>These Terms are between you and Polaris Logistics only, not Apple. Polaris Logistics, not Apple, is responsible for the Application.</li>
+					<li>You may use the Application only on Apple-branded devices that you own or control, as allowed by the App Store Usage Rules.</li>
+					<li>Apple has no obligation to provide maintenance or support for the Application.</li>
+					<li>If the Application fails to meet any warranty that applies, you may notify Apple, and Apple will refund the purchase price (if any). Apple has no other warranty obligation for the Application.</li>
+					<li>Polaris Logistics, not Apple, is responsible for handling claims about the Application. This includes product liability claims, claims that the Application doesn't meet legal or regulatory requirements, and consumer protection claims.</li>
+					<li>If someone claims the Application infringes their intellectual property, Polaris Logistics, not Apple, is responsible for investigating and handling that claim.</li>
+					<li>You confirm that you are not located in a country under a US government embargo, and that you are not on any US government list of prohibited or restricted parties.</li>
+					<li>You must follow any third-party terms that apply when you use the Application.</li>
+					<li>Apple and its subsidiaries are third-party beneficiaries of these Terms. They may enforce these Terms against you.</li>
+				</ul>
+</section>
+<section id="general" aria-labelledby="h-general">
+<h2 id="h-general"><span class="num" aria-hidden="true">20</span><a class="anchor" href="#general">General<span class="hash" aria-hidden="true">#</span></a></h2>
+<ul>
+<li><strong>Entire agreement:</strong> These Terms, together with the Privacy Policy, are the full agreement between you and us about the Application.</li>
+					<li><strong>Severability:</strong> If any part of these Terms cannot be enforced, the rest still applies.</li>
+					<li><strong>No waiver:</strong> If we do not enforce a part of these Terms, we still keep the right to enforce it later.</li>
+					<li><strong>Assignment:</strong> You may not transfer your rights under these Terms. We may transfer ours, for example as part of a merger or sale of the business.</li>
+					<li><strong>Notices:</strong> We may send you notices through the Application or to the email address on your account. You can send notices to the contact details in <a href="#contact-information">Section 21</a>.</li>
+					<li><strong>Export laws:</strong> You agree to follow US export control and sanctions laws when using the Application.</li>
+				</ul>
+</section>
+<section id="contact-information" aria-labelledby="h-contact-information">
+<h2 id="h-contact-information"><span class="num" aria-hidden="true">21</span><a class="anchor" href="#contact-information">Contact Information<span class="hash" aria-hidden="true">#</span></a></h2>
+<div class="contact"><p class="org">Polaris Logistics</p>
+<p>
+				9722 S 132nd St<br>
+				Papillion, NE 68046<br>
+				Phone: <a href="tel:+14025278430">(402) 527-8430</a><br>
+				Email: <a href="mailto:dev@polaris-logistic.com">dev@polaris-logistic.com</a><br>
+				Website: <a href="https://polaris-logistic.com/">polaris-logistic.com</a></p></div>
+</section>
+  </article>
+</div>
+
+<footer class="pagefoot">
+  <span>&copy; 2026 Polaris Logistics</span>
+  <span><a href="/privacy">Privacy Policy</a> &middot; <a href="#top">Back to top</a></span>
+</footer>
+
+<script>
+(function () {
+  var links = document.querySelectorAll('.toc a');
+  var sections = document.querySelectorAll('article section');
+  if (!links.length) return;
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+  var current = null;
+  function update() {
+    var id = sections[0].id;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top <= 130) id = sections[i].id; else break;
+    }
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) id = sections[sections.length - 1].id;
+    var next = byId[id];
+    if (next === current) return;
+    if (current) current.classList.remove('active');
+    current = next;
+    current.classList.add('active');
+    var box = current.closest('.toc');
+    var r = current.getBoundingClientRect(), br = box.getBoundingClientRect();
+    if (r.top < br.top) box.scrollTop -= br.top - r.top + 8;
+    else if (r.bottom > br.bottom) box.scrollTop += r.bottom - br.bottom + 8;
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+  document.querySelectorAll('.toc-mobile a').forEach(function (a) {
+    a.addEventListener('click', function () { a.closest('details').open = false; });
+  });
+})();
+</script>
+</body>
+</html>

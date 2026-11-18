@@ -30,6 +30,7 @@ from zerver.lib.stream_subscription import (
 )
 from zerver.lib.streams import (
     can_access_stream_history,
+    can_see_all_channel_messages,
     get_web_public_streams_queryset,
     is_user_in_groups_granting_content_access,
 )
@@ -572,16 +573,12 @@ def has_message_access(
     * The optional stream parameter is validated; is_subscribed is not.
     """
 
-    # Custom visibility policy: non-admin users cannot access any message
-    # (channel or direct message) that was sent before they joined the
-    # organization. Admins are exempt and can access the full history.
-    if (
-        not user_profile.is_realm_admin
-        and message.date_sent < user_profile.date_joined
-    ):
-        return False
-
     if message.recipient.type != Recipient.STREAM:
+        # Custom visibility policy: non-administrators cannot access a
+        # direct message that was sent before they joined the organization.
+        if not user_profile.is_realm_admin and message.date_sent < user_profile.date_joined:
+            return False
+
         # You can only access direct messages you received
         return has_user_message()
 
@@ -598,12 +595,32 @@ def has_message_access(
         # You can't access messages in deactivated streams
         return False
 
-    if stream.is_public() and user_profile.can_access_public_streams():
+    # Custom visibility policy: organization administrators and this
+    # channel's administrators can read every message in the channel,
+    # including history from before they joined and messages they have no
+    # UserMessage row for.
+    if can_see_all_channel_messages(user_profile, stream, user_group_membership_details):
         return True
 
-    # Admins with a UserMessage row have explicit access to this message,
-    # regardless of subscription or stream visibility.
-    if user_profile.is_realm_admin and has_user_message():
+    # Custom visibility policy: everyone else cannot access a channel
+    # message that was sent before they joined the organization.  This has
+    # to stay above the public-channel check below, which would otherwise
+    # grant access to the whole backlog.
+    if message.date_sent < user_profile.date_joined:
+        return False
+
+    # Custom visibility policy: everyone else reads only the channel
+    # messages that were actually delivered to them.  Without this, the
+    # checks below would grant access to any message in a public channel,
+    # or in a channel whose history is public to subscribers, so a message
+    # could be fetched by id even though it is absent from the message
+    # list and from search.  This makes single-message access agree with
+    # get_base_query_for_search and bulk_access_stream_messages_query,
+    # which already require a UserMessage row for these users.
+    if not has_user_message():
+        return False
+
+    if stream.is_public() and user_profile.can_access_public_streams():
         return True
 
     if not stream.is_history_public_to_subscribers():
@@ -782,6 +799,12 @@ def bulk_access_stream_messages_query(
         return messages
 
     user_group_membership_details = UserGroupMembershipDetails(user_recursive_group_ids=None)
+
+    # Custom visibility policy: mirrors has_message_access, so that channel
+    # administrators keep access in the bulk paths too.
+    if can_see_all_channel_messages(user_profile, stream, user_group_membership_details):
+        return messages
+
     has_content_access = has_channel_content_access_helper(
         stream, user_profile, user_group_membership_details, is_subscribed=None
     )

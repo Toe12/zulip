@@ -50,6 +50,12 @@ export function get_deletability(message: Message): boolean {
         const stream = stream_data.get_sub_by_id(message.stream_id);
         assert(stream !== undefined);
 
+        // A channel administrator acts as an administrator inside their
+        // own channel; see can_delete_any_message_in_channel.
+        if (stream_data.can_administer_channel(stream)) {
+            return true;
+        }
+
         const can_delete_any_message_in_channel =
             settings_data.user_has_permission_for_group_setting(
                 stream.can_delete_any_message_group,
