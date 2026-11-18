@@ -16,3 +16,7 @@ The software includes some works released by third parties under other
 free and open source licenses. Those works are redistributed under the
 license terms under which the works were received. For more details,
 see the ``docs/THIRDPARTY`` file included with this distribution.
+
+This distribution has been modified for basecomms, operated by Polaris
+Logistics.  The modifications are recorded in the Git history of this
+repository.  They do not change the license of the original work.

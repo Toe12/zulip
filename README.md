@@ -1,3 +1,10 @@
+> **basecomms.** This repository is the basecomms server, a modified version of
+> Zulip, the open-source team chat app at <https://zulip.com>, used under the
+> Apache License 2.0 (see `LICENSE` and `NOTICE`). "Zulip" is a trademark of
+> Kandra Labs, Inc.; basecomms is not affiliated with or endorsed by Zulip or
+> Kandra Labs. Changes from upstream are in this repository's Git history.
+> The rest of this file is the upstream README.
+
 # Zulip overview
 
 [Zulip](https://zulip.com) is an open-source organized team chat app with unique
